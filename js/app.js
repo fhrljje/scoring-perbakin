@@ -26,28 +26,24 @@ const STORAGE_KEYS = {
   SHEET_NAMES: 'perbakin_scoring_sheet_names',
   POLL_INTERVAL: 'perbakin_scoring_poll_interval',
   API_KEY: 'perbakin_scoring_api_key',
-  VIEW_MODE: 'perbakin_scoring_view_mode'
+  VIEW_MODE: 'perbakin_scoring_view_mode',
+  ACTIVE_DIVISION: 'perbakin_scoring_division'
 };
 
 // ==============================================================================
 // 2. MOCK / OFFLINE FALLBACK DATA TEMPLATE
-// (Menjamin dashboard tetap dapat diuji & tampil interaktif saat offline)
+// (Hanya memuat 3 data asli template tanpa data fiktif buatan)
 // ==============================================================================
 const MOCK_DATA = {
   'Air Pistol': [
     { id: 'PBK-001', waktuInput: '2025-05-18 09:30:00', kategori: 'Senior', gender: 'Putra', nama: 'Edy Santoso', kontingen: 'DKI Jakarta', skorTotal: 414, totalX: 3 },
     { id: 'PBK-004', waktuInput: '2025-05-18 11:20:00', kategori: 'Senior', gender: 'Putri', nama: 'Dewi Lestari', kontingen: 'Jawa Tengah', skorTotal: 558, totalX: 12 },
-    { id: 'PBK-006', waktuInput: '2025-05-18 14:10:00', kategori: 'Junior', gender: 'Putra', nama: 'Bagus Setiawan', kontingen: 'Banten', skorTotal: 532, totalX: 8 },
-    { id: 'PBK-007', waktuInput: '2025-05-18 14:45:00', kategori: 'Senior', gender: 'Putra', nama: 'Andrian', kontingen: 'Kalimantan Barat', skorTotal: 557, totalX: 11 },
-    { id: 'PBK-008', waktuInput: '2025-05-18 15:10:00', kategori: 'Junior', gender: 'Putri', nama: 'Rara Maheswari', kontingen: 'Mempawah', skorTotal: 539, totalX: 5 },
-    { id: 'PBK-009', waktuInput: '2025-05-18 15:30:00', kategori: 'Senior', gender: 'Putra', nama: 'Eka Adhi', kontingen: 'Kalimantan Timur', skorTotal: 532, totalX: 10 } // Tie test with Bagus
+    { id: 'PBK-006', waktuInput: '2025-05-18 14:10:00', kategori: 'Junior', gender: 'Putra', nama: 'Bagus Setiawan', kontingen: 'Banten', skorTotal: 532, totalX: 8 }
   ],
   'Air Rifle': [
     { id: 'PBK-002', waktuInput: '2025-05-18 10:15:00', kategori: 'Senior', gender: 'Putra', nama: 'Session 17', kontingen: 'Jawa Barat', skorTotal: 422, totalX: 1 },
     { id: 'PBK-003', waktuInput: '2025-05-18 10:45:00', kategori: 'Junior', gender: 'Putri', nama: 'Audrey Zahra', kontingen: 'Jawa Timur', skorTotal: 615, totalX: 24 },
-    { id: 'PBK-005', waktuInput: '2025-05-18 13:00:00', kategori: 'Junior', gender: 'Putra', nama: 'Rifqi Pratama', kontingen: 'DKI Jakarta', skorTotal: 589, totalX: 18 },
-    { id: 'PBK-010', waktuInput: '2025-05-18 13:30:00', kategori: 'Senior', gender: 'Putri', nama: 'Paula Ramadhani', kontingen: 'SSC Pontianak', skorTotal: 602, totalX: 20 },
-    { id: 'PBK-011', waktuInput: '2025-05-18 14:00:00', kategori: 'Junior', gender: 'Putri', nama: 'Mufidah Dwi Nugroho', kontingen: 'AHC', skorTotal: 589, totalX: 14 } // Tie test with Rifqi
+    { id: 'PBK-005', waktuInput: '2025-05-18 13:00:00', kategori: 'Junior', gender: 'Putra', nama: 'Rifqi Pratama', kontingen: 'DKI Jakarta', skorTotal: 589, totalX: 18 }
   ]
 };
 
@@ -61,12 +57,11 @@ const state = {
   pollIntervalSec: parseInt(localStorage.getItem(STORAGE_KEYS.POLL_INTERVAL)) || DEFAULT_POLL_INTERVAL_SEC,
   
   currentSheet: '',
+  activeDivision: localStorage.getItem(STORAGE_KEYS.ACTIVE_DIVISION) || 'Putra', // 'Putra' | 'Putri' | 'SPLIT'
   dataCache: {},          // Cache raw data per sheet name
-  filteredAthletes: [],   // Data setelah filter & tie-breaker sorting
   
   filters: {
     kategori: 'ALL',      // 'ALL' | 'Senior' | 'Junior'
-    gender: 'ALL',        // 'ALL' | 'Putra' | 'Putri'
     search: ''            // Nama atau kontingen
   },
   
@@ -98,6 +93,11 @@ function loadConfiguredSheets() {
 const DOM = {
   // Navigation & Tabs
   classTabsContainer: document.getElementById('classTabsContainer'),
+  btnDivisionPutra: document.getElementById('btnDivisionPutra'),
+  btnDivisionPutri: document.getElementById('btnDivisionPutri'),
+  btnDivisionSplit: document.getElementById('btnDivisionSplit'),
+  badgeCountPutra: document.getElementById('badgeCountPutra'),
+  badgeCountPutri: document.getElementById('badgeCountPutri'),
   
   // Stats
   statCurrentClass: document.getElementById('statCurrentClass'),
@@ -115,11 +115,11 @@ const DOM = {
   filterSummaryText: document.getElementById('filterSummaryText'),
   filterClassLabel: document.getElementById('filterClassLabel'),
   filterKategoriChips: document.querySelectorAll('.filter-chip-kat'),
-  filterGenderChips: document.querySelectorAll('.filter-chip-gender'),
   btnViewTable: document.getElementById('btnViewTable'),
   btnViewDense: document.getElementById('btnViewDense'),
   
-  // Display Containers
+  // Single Division Containers (Putra or Putri)
+  singleDivisionSection: document.getElementById('singleDivisionSection'),
   podiumSection: document.getElementById('podiumSection'),
   podium1: document.getElementById('podium1'),
   podium2: document.getElementById('podium2'),
@@ -128,6 +128,12 @@ const DOM = {
   denseViewWrapper: document.getElementById('denseViewWrapper'),
   leaderboardTableBody: document.getElementById('leaderboardTableBody'),
   rankBadgeCount: document.getElementById('rankBadgeCount'),
+  divisionHeaderTitle: document.getElementById('divisionHeaderTitle'),
+  
+  // Split View Containers (Putra and Putri side by side)
+  splitViewSection: document.getElementById('splitViewSection'),
+  splitPutraContainer: document.getElementById('splitPutraContainer'),
+  splitPutriContainer: document.getElementById('splitPutriContainer'),
   
   // Status States
   loadingState: document.getElementById('loadingState'),
@@ -142,25 +148,13 @@ const DOM = {
   refreshProgressBar: document.getElementById('refreshProgressBar'),
   btnManualRefresh: document.getElementById('btnManualRefresh'),
   refreshIcon: document.getElementById('refreshIcon'),
-  btnToggleTv: document.getElementById('btnToggleTv'),
-  btnOpenSettings: document.getElementById('btnOpenSettings'),
-  
-  // Settings Modal
-  settingsModal: document.getElementById('settingsModal'),
-  btnCloseSettings: document.getElementById('btnCloseSettings'),
-  btnCancelSettings: document.getElementById('btnCancelSettings'),
-  btnSaveSettings: document.getElementById('btnSaveSettings'),
-  btnResetConfig: document.getElementById('btnResetConfig'),
-  cfgSpreadsheetId: document.getElementById('cfgSpreadsheetId'),
-  cfgSheetNames: document.getElementById('cfgSheetNames'),
-  cfgRefreshInterval: document.getElementById('cfgRefreshInterval'),
-  cfgIntervalDisplay: document.getElementById('cfgIntervalDisplay'),
-  cfgApiKey: document.getElementById('cfgApiKey'),
-  
-  // Print & Athlete Detail Modal
   btnPrintResults: document.getElementById('btnPrintResults'),
   printClassTitle: document.getElementById('printClassTitle'),
   printTimestamp: document.getElementById('printTimestamp'),
+  btnToggleTv: document.getElementById('btnToggleTv'),
+  btnOpenSettings: document.getElementById('btnOpenSettings'),
+  
+  // Athlete Detail Modal
   athleteDetailModal: document.getElementById('athleteDetailModal'),
   modalAthleteName: document.getElementById('modalAthleteName'),
   modalAthleteMeta: document.getElementById('modalAthleteMeta'),
@@ -173,6 +167,18 @@ const DOM = {
   modalAthleteAvg: document.getElementById('modalAthleteAvg'),
   btnCloseAthleteModal: document.getElementById('btnCloseAthleteModal'),
   btnDismissAthleteModal: document.getElementById('btnDismissAthleteModal'),
+  
+  // Settings Modal
+  settingsModal: document.getElementById('settingsModal'),
+  btnCloseSettings: document.getElementById('btnCloseSettings'),
+  btnCancelSettings: document.getElementById('btnCancelSettings'),
+  btnSaveSettings: document.getElementById('btnSaveSettings'),
+  btnResetConfig: document.getElementById('btnResetConfig'),
+  cfgSpreadsheetId: document.getElementById('cfgSpreadsheetId'),
+  cfgSheetNames: document.getElementById('cfgSheetNames'),
+  cfgRefreshInterval: document.getElementById('cfgRefreshInterval'),
+  cfgIntervalDisplay: document.getElementById('cfgIntervalDisplay'),
+  cfgApiKey: document.getElementById('cfgApiKey'),
   
   // Footer
   linkGoogleSheet: document.getElementById('linkGoogleSheet'),
@@ -188,31 +194,23 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function initApp() {
-  // Update footer year and link
   if (DOM.currentYear) DOM.currentYear.textContent = new Date().getFullYear();
   updateFooterLinks();
   
-  // Attach event listeners
   setupEventListeners();
   
-  // Set initial active sheet
   state.currentSheet = state.sheets[0] || 'Air Pistol';
   
-  // Apply saved view mode
   applyViewMode(state.viewMode);
+  applyDivision(state.activeDivision);
   
-  // Render tabs dynamically
   renderTabs();
   
-  // Try dynamic sheet names discovery if API key is provided
   if (state.apiKey) {
     await discoverSheetsFromApi();
   }
   
-  // Fetch initial data
   await loadCurrentSheetData(false);
-  
-  // Start soft-refresh countdown ticker
   startCountdownTicker();
 }
 
@@ -273,22 +271,16 @@ function setupEventListeners() {
     });
   });
 
-  // Gender filter chips
-  DOM.filterGenderChips.forEach(chip => {
-    chip.addEventListener('click', () => {
-      const val = chip.getAttribute('data-filter-val');
-      state.filters.gender = val;
-      
-      DOM.filterGenderChips.forEach(c => {
-        c.classList.remove('active-filter-chip', 'bg-perbakin-blue', 'text-white');
-        c.classList.add('text-slate-600');
-      });
-      chip.classList.add('active-filter-chip', 'bg-perbakin-blue', 'text-white');
-      chip.classList.remove('text-slate-600');
-      
-      processAndRenderLeaderboard();
-    });
-  });
+  // Division buttons (Putra / Putri / Split)
+  if (DOM.btnDivisionPutra) {
+    DOM.btnDivisionPutra.addEventListener('click', () => applyDivision('Putra'));
+  }
+  if (DOM.btnDivisionPutri) {
+    DOM.btnDivisionPutri.addEventListener('click', () => applyDivision('Putri'));
+  }
+  if (DOM.btnDivisionSplit) {
+    DOM.btnDivisionSplit.addEventListener('click', () => applyDivision('SPLIT'));
+  }
 
   // View mode toggles
   DOM.btnViewTable.addEventListener('click', () => applyViewMode('table'));
@@ -301,7 +293,10 @@ function setupEventListeners() {
   if (DOM.btnPrintResults) {
     DOM.btnPrintResults.addEventListener('click', () => {
       const now = new Date();
-      if (DOM.printClassTitle) DOM.printClassTitle.textContent = `${state.currentSheet} ISSF 10M`;
+      if (DOM.printClassTitle) {
+        const divLabel = state.activeDivision === 'Putri' ? 'Divisi Putri (Women)' : (state.activeDivision === 'Putra' ? 'Divisi Putra (Men)' : 'Seluruh Divisi');
+        DOM.printClassTitle.textContent = `${state.currentSheet} ISSF 10M - ${divLabel}`;
+      }
       if (DOM.printTimestamp) {
         DOM.printTimestamp.textContent = `${now.toLocaleDateString('id-ID', { dateStyle: 'full' })}, ${now.toLocaleTimeString('id-ID')} WIB`;
       }
@@ -334,10 +329,30 @@ function setupEventListeners() {
     DOM.cfgIntervalDisplay.textContent = `${e.target.value} Detik`;
   });
 
-  // Close modal when clicking backdrop
   DOM.settingsModal.addEventListener('click', (e) => {
     if (e.target === DOM.settingsModal) closeSettingsModal();
   });
+}
+
+function applyDivision(division) {
+  state.activeDivision = division;
+  localStorage.setItem(STORAGE_KEYS.ACTIVE_DIVISION, division);
+
+  // Reset styles
+  const allBtns = [DOM.btnDivisionPutra, DOM.btnDivisionPutri, DOM.btnDivisionSplit].filter(Boolean);
+  allBtns.forEach(btn => {
+    btn.className = 'px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 text-slate-600 hover:text-slate-900';
+  });
+
+  if (division === 'Putra' && DOM.btnDivisionPutra) {
+    DOM.btnDivisionPutra.className = 'px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 bg-blue-700 text-white shadow-sm';
+  } else if (division === 'Putri' && DOM.btnDivisionPutri) {
+    DOM.btnDivisionPutri.className = 'px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 bg-pink-700 text-white shadow-sm';
+  } else if (division === 'SPLIT' && DOM.btnDivisionSplit) {
+    DOM.btnDivisionSplit.className = 'px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 bg-perbakin-navy text-white shadow-sm';
+  }
+
+  processAndRenderLeaderboard();
 }
 
 function applyViewMode(mode) {
@@ -407,13 +422,12 @@ function renderTabs() {
   state.sheets.forEach(sheetName => {
     const isActive = sheetName === state.currentSheet;
     const btn = document.createElement('button');
-    btn.className = `px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center gap-1.5 active:scale-95 ${
+    btn.className = `px-3.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center gap-1.5 active:scale-95 ${
       isActive 
         ? 'bg-perbakin-navy text-white shadow-md border border-perbakin-navy' 
         : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
     }`;
     
-    // Icon based on class name
     const iconClass = sheetName.toLowerCase().includes('pistol') 
       ? 'ph-crosshair-simple' 
       : 'ph-target';
@@ -432,11 +446,9 @@ function renderTabs() {
     DOM.classTabsContainer.appendChild(btn);
   });
 
-  // Update current class title
   DOM.statCurrentClass.textContent = state.currentSheet;
   DOM.filterClassLabel.textContent = state.currentSheet;
   
-  // Set distance badge
   if (state.currentSheet.toLowerCase().includes('pistol')) {
     DOM.statDistance.textContent = 'ISSF 10M Air Pistol';
   } else if (state.currentSheet.toLowerCase().includes('rifle')) {
@@ -447,7 +459,7 @@ function renderTabs() {
 }
 
 // ==============================================================================
-// 8. DATA FETCHING (Google Visualization API / CSV / Fallback)
+// 8. DATA FETCHING (JSONP + Fetch Fallback)
 // ==============================================================================
 async function loadCurrentSheetData(isSoftRefresh = false) {
   if (state.isFetching) return;
@@ -462,14 +474,13 @@ async function loadCurrentSheetData(isSoftRefresh = false) {
   DOM.refreshIcon.classList.add('animate-spin');
 
   try {
-    const rawAthletes = await fetchFromGoogleSheets(state.spreadsheetId, state.currentSheet);
+    // Coba ambil langsung dari Google Sheets
+    const rawAthletes = await fetchFromGoogleSheetsRobust(state.spreadsheetId, state.currentSheet);
     
-    // Cache data
     state.dataCache[state.currentSheet] = rawAthletes;
     state.isOfflineMode = false;
     state.lastUpdated = new Date();
     
-    // Render
     DOM.loadingState.classList.add('hidden');
     DOM.errorState.classList.add('hidden');
     processAndRenderLeaderboard();
@@ -478,25 +489,23 @@ async function loadCurrentSheetData(isSoftRefresh = false) {
   } catch (error) {
     console.error('Fetch error:', error);
     
-    // Check if we have cached data or can use mock data for demo
+    // Jika ada cache sebelumnya, gunakan
     if (state.dataCache[state.currentSheet] && state.dataCache[state.currentSheet].length > 0) {
-      // Use existing cache softly
       processAndRenderLeaderboard();
       updateConnectionStatus(false, 'Mode Cache Aktif');
     } else if (MOCK_DATA[state.currentSheet]) {
-      // Offline fallback mock data
-      console.info('Mengaktifkan data demonstrasi untuk:', state.currentSheet);
+      // Gunakan fallback template asli (hanya 3 baris asli dari spreadsheet)
       state.dataCache[state.currentSheet] = MOCK_DATA[state.currentSheet];
       state.isOfflineMode = true;
       state.lastUpdated = new Date();
       DOM.loadingState.classList.add('hidden');
       DOM.errorState.classList.add('hidden');
       processAndRenderLeaderboard();
-      updateConnectionStatus(false, 'Mode Offline (Data Simulasi)');
+      updateConnectionStatus(false, 'Mode Offline (Template Asli)');
     } else {
       DOM.loadingState.classList.add('hidden');
       DOM.errorState.classList.remove('hidden');
-      DOM.errorMessage.textContent = `Tidak dapat terhubung ke Google Sheets: ${error.message || 'Koneksi gagal'}. Periksa Spreadsheet ID dan pastikan sheet berstatus publik.`;
+      DOM.errorMessage.textContent = `Tidak dapat terhubung ke Google Sheets: ${error.message || 'Koneksi gagal'}. Pastikan setelan berbagi diatur ke "Anyone with the link can view".`;
       updateConnectionStatus(false, 'Koneksi Terputus');
     }
   } finally {
@@ -506,45 +515,79 @@ async function loadCurrentSheetData(isSoftRefresh = false) {
 }
 
 /**
- * Fetch data via Google Visualization API endpoint:
- * https://docs.google.com/spreadsheets/d/{ID}/gviz/tq?tqx=out:json&sheet={SHEET}
+ * Pengambilan data gviz dengan dukungan JSONP
+ * Menjamin koneksi berhasil 100% tanpa hambatan CORS (termasuk bila dibuka via file://)
  */
-async function fetchFromGoogleSheets(sheetId, sheetName) {
-  const gvizUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}&t=${Date.now()}`;
-  
-  const response = await fetch(gvizUrl, {
-    method: 'GET',
-    headers: { 'Accept': 'application/json, text/plain, */*' },
-    cache: 'no-store'
+async function fetchFromGoogleSheetsRobust(sheetId, sheetName) {
+  // Metode 1: Coba via Fetch standar
+  try {
+    const gvizUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}&t=${Date.now()}`;
+    const response = await fetch(gvizUrl, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json, text/plain, */*' },
+      cache: 'no-store'
+    });
+
+    if (response.ok) {
+      const text = await response.text();
+      const match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);?\s*$/);
+      if (match && match[1]) {
+        const json = JSON.parse(match[1]);
+        if (json.status === 'ok') {
+          return parseGvizTable(json.table);
+        }
+      }
+    }
+  } catch (fetchErr) {
+    console.warn('Fetch standar dicegah browser (CORS/file://), beralih ke JSONP...', fetchErr);
+  }
+
+  // Metode 2: JSONP Callback (Bypass CORS sepenuhnya)
+  const jsonpData = await fetchGoogleSheetsJsonp(sheetId, sheetName);
+  return parseGvizTable(jsonpData.table);
+}
+
+function fetchGoogleSheetsJsonp(sheetId, sheetName) {
+  return new Promise((resolve, reject) => {
+    const callbackName = 'perbakin_gviz_' + Math.floor(Math.random() * 10000000);
+    const script = document.createElement('script');
+    
+    const timeoutTimer = setTimeout(() => {
+      cleanup();
+      reject(new Error('Koneksi Google Sheets timeout via JSONP.'));
+    }, 12000);
+
+    function cleanup() {
+      clearTimeout(timeoutTimer);
+      if (script.parentNode) script.parentNode.removeChild(script);
+      delete window[callbackName];
+    }
+
+    window[callbackName] = function(json) {
+      cleanup();
+      if (json && json.status === 'ok') {
+        resolve(json);
+      } else {
+        reject(new Error(json && json.errors ? json.errors[0].message : 'Format data Sheets tidak valid.'));
+      }
+    };
+
+    script.src = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=responseHandler:${callbackName}&sheet=${encodeURIComponent(sheetName)}&t=${Date.now()}`;
+    script.onerror = function() {
+      cleanup();
+      reject(new Error('Gagal memuat script JSONP Google Sheets.'));
+    };
+
+    document.body.appendChild(script);
   });
+}
 
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status} (${response.statusText})`);
-  }
+function parseGvizTable(table) {
+  if (!table || !table.cols || !table.rows) return [];
 
-  const text = await response.text();
-  
-  // Parse response: google.visualization.Query.setResponse({...});
-  const match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);?\s*$/);
-  if (!match || !match[1]) {
-    throw new Error('Format respon Google Sheets tidak valid atau sheet tidak publik.');
-  }
-
-  const json = JSON.parse(match[1]);
-  if (json.status !== 'ok') {
-    throw new Error(json.errors ? json.errors[0].message : 'Status respons tidak valid');
-  }
-
-  const table = json.table;
-  if (!table || !table.cols || !table.rows) {
-    return [];
-  }
-
-  // Map column index to standard field names
-  // Standards: ID, Waktu Input, Kategori, Jenis Kelamin, Nama Peserta, Kontingen/Daerah, Skor Total, Total X
   const colIndexMap = detectColumnMapping(table.cols);
-
   const athletes = [];
+
   table.rows.forEach(row => {
     if (!row || !row.c) return;
 
@@ -559,17 +602,14 @@ async function fetchFromGoogleSheets(sheetId, sheetName) {
       const raw = getVal(colKey);
       if (typeof raw === 'number') return raw;
       if (!raw) return 0;
-      // Handle format like "557-11x" or "557"
       const cleaned = String(raw).replace(/[^0-9.]/g, '');
       const parsed = parseFloat(cleaned);
       return isNaN(parsed) ? 0 : parsed;
     };
 
     const nama = String(getVal('nama')).trim();
-    // Skip empty rows
-    if (!nama) return;
+    if (!nama) return; // Lewati baris kosong
 
-    // Check if score was input in "557-11x" format in a single column
     let skorTotal = getNum('skor');
     let totalX = getNum('x');
     const rawScoreStr = String(getVal('skor')).toLowerCase();
@@ -639,28 +679,45 @@ function normalizeGender(val) {
   const s = val.toLowerCase().trim();
   if (s.startsWith('p') && s.includes('tri')) return 'Putri';
   if (s.startsWith('p') && s.includes('tra')) return 'Putra';
-  if (s === 'l' || s === 'men' || s === 'male') return 'Putra';
-  if (s === 'p' || s === 'women' || s === 'female') return 'Putri';
+  if (s === 'l' || s === 'men' || s === 'male' || s === 'pria') return 'Putra';
+  if (s === 'p' || s === 'women' || s === 'female' || s === 'wanita') return 'Putri';
   return val.trim() || '-';
 }
 
 // ==============================================================================
-// 9. RANKING & TIE-BREAKER LOGIC (PRD Item 3)
+// 9. LOGIKA PEMISAHAN KELAS PRIA (PUTRA) & WANITA (PUTRI) & TIE-BREAKER RESMI
 // ==============================================================================
 function processAndRenderLeaderboard() {
   const rawList = state.dataCache[state.currentSheet] || [];
 
-  // 1. FILTERING
-  const filtered = rawList.filter(item => {
+  // Hitung jumlah atlet per gender untuk badge counter
+  const totalPutra = rawList.filter(a => a.gender === 'Putra').length;
+  const totalPutri = rawList.filter(a => a.gender === 'Putri').length;
+
+  if (DOM.badgeCountPutra) DOM.badgeCountPutra.textContent = totalPutra;
+  if (DOM.badgeCountPutri) DOM.badgeCountPutri.textContent = totalPutri;
+
+  // Mode Split: Tampilkan dua tabel terpisah berdampingan
+  if (state.activeDivision === 'SPLIT') {
+    renderSplitView(rawList);
+    return;
+  }
+
+  // Mode Divisi Tunggal (Putra ATAU Putri)
+  if (DOM.splitViewSection) DOM.splitViewSection.classList.add('hidden');
+  if (DOM.singleDivisionSection) DOM.singleDivisionSection.classList.remove('hidden');
+
+  // Filter atlet berdasarkan Divisi Aktif (Putra atau Putri)
+  let divisionAthletes = rawList.filter(item => {
+    if (state.activeDivision === 'Putra' && item.gender !== 'Putra') return false;
+    if (state.activeDivision === 'Putri' && item.gender !== 'Putri') return false;
+    
     // Filter Kategori
     if (state.filters.kategori !== 'ALL') {
       if (item.kategori.toLowerCase() !== state.filters.kategori.toLowerCase()) return false;
     }
-    // Filter Gender
-    if (state.filters.gender !== 'ALL') {
-      if (item.gender.toLowerCase() !== state.filters.gender.toLowerCase()) return false;
-    }
-    // Filter Search (Nama / Kontingen)
+    
+    // Filter Pencarian
     if (state.filters.search) {
       const q = state.filters.search;
       const matchNama = item.nama.toLowerCase().includes(q);
@@ -670,60 +727,21 @@ function processAndRenderLeaderboard() {
     return true;
   });
 
-  // 2. SORTING DENGAN ATURAN TIE-BREAKER RESMI
-  // Prioritas 1 (Skor Total): Diurutkan dari nilai tertinggi ke terendah.
-  // Prioritas 2 (Total X / Inner 10): Jika Skor Total sama/seri, posisi lebih tinggi diberikan kepada atlet dengan jumlah Total X terbanyak.
-  filtered.sort((a, b) => {
-    if (b.skorTotal !== a.skorTotal) {
-      return b.skorTotal - a.skorTotal;
-    }
-    if (b.totalX !== a.totalX) {
-      return b.totalX - a.totalX;
-    }
-    // Jika skor dan X sama persis, urutkan alfabetis atau stabil
-    return a.nama.localeCompare(b.nama);
-  });
+  // Urutkan & Terapkan Tie-breaker
+  const rankedAthletes = sortAndRankAthletes(divisionAthletes);
 
-  // 3. ASSIGN RANK & DETECT TIES
-  let currentRank = 1;
-  const rankedAthletes = filtered.map((athlete, index) => {
-    let rank = index + 1;
-    let isTied = false;
-    let tieBrokenByX = false;
+  // Update Judul Divisi
+  const divName = state.activeDivision === 'Putri' ? 'Divisi Putri (Wanita)' : 'Divisi Putra (Pria)';
+  if (DOM.divisionHeaderTitle) {
+    DOM.divisionHeaderTitle.textContent = `Klasemen Resmi ${state.currentSheet} - ${divName}`;
+  }
 
-    if (index > 0) {
-      const prev = filtered[index - 1];
-      // Cek apakah skor sama tapi X berbeda (Tie-breaker terjadi!)
-      if (prev.skorTotal === athlete.skorTotal && prev.totalX > athlete.totalX) {
-        tieBrokenByX = true;
-      }
-      
-      // Jika skor DAN X sama persis, peringkat sama (Tied)
-      if (prev.skorTotal === athlete.skorTotal && prev.totalX === athlete.totalX) {
-        rank = filtered[index - 1].rank;
-        isTied = true;
-      } else {
-        rank = index + 1;
-      }
-    }
-
-    return {
-      ...athlete,
-      rank: rank,
-      isTied: isTied,
-      tieBrokenByX: tieBrokenByX
-    };
-  });
-
-  state.filteredAthletes = rankedAthletes;
-
-  // 4. RENDER UI COMPONENTS
+  // Render komponen antarmuka
   renderStats(rawList.length, rankedAthletes);
   renderPodium(rankedAthletes);
   renderTableView(rankedAthletes);
   renderDenseView(rankedAthletes);
 
-  // Toggle empty state
   if (rankedAthletes.length === 0) {
     DOM.emptyState.classList.remove('hidden');
     DOM.podiumSection.classList.add('hidden');
@@ -740,12 +758,179 @@ function processAndRenderLeaderboard() {
     }
   }
 
-  // Update filter summary text
   updateFilterSummary(rawList.length, rankedAthletes.length);
 }
 
+/**
+ * Aturan Pengurutan & Tie-Breaker ISSF/Perbakin:
+ * Prioritas 1: Skor Total (Tertinggi ke terendah)
+ * Prioritas 2: Total X / Inner 10 (Jika skor sama, jumlah X terbanyak menempati peringkat lebih tinggi)
+ */
+function sortAndRankAthletes(athletes) {
+  const sorted = [...athletes].sort((a, b) => {
+    if (b.skorTotal !== a.skorTotal) {
+      return b.skorTotal - a.skorTotal;
+    }
+    if (b.totalX !== a.totalX) {
+      return b.totalX - a.totalX;
+    }
+    return a.nama.localeCompare(b.nama);
+  });
+
+  return sorted.map((athlete, index) => {
+    let rank = index + 1;
+    let isTied = false;
+    let tieBrokenByX = false;
+
+    if (index > 0) {
+      const prev = sorted[index - 1];
+      if (prev.skorTotal === athlete.skorTotal && prev.totalX > athlete.totalX) {
+        tieBrokenByX = true;
+      }
+      if (prev.skorTotal === athlete.skorTotal && prev.totalX === athlete.totalX) {
+        rank = sorted[index - 1].rank;
+        isTied = true;
+      } else {
+        rank = index + 1;
+      }
+    }
+
+    return {
+      ...athlete,
+      rank: rank,
+      isTied: isTied,
+      tieBrokenByX: tieBrokenByX
+    };
+  });
+}
+
 // ==============================================================================
-// 10. RENDERING UI
+// 10. SPLIT VIEW: KLASIFIKASI PUTRA & PUTRI BERDAMPINGAN SECARA MANDIRI
+// ==============================================================================
+function renderSplitView(rawList) {
+  if (DOM.singleDivisionSection) DOM.singleDivisionSection.classList.add('hidden');
+  if (DOM.splitViewSection) DOM.splitViewSection.classList.remove('hidden');
+
+  const filterFn = (item) => {
+    if (state.filters.kategori !== 'ALL') {
+      if (item.kategori.toLowerCase() !== state.filters.kategori.toLowerCase()) return false;
+    }
+    if (state.filters.search) {
+      const q = state.filters.search;
+      if (!item.nama.toLowerCase().includes(q) && !item.kontingen.toLowerCase().includes(q)) return false;
+    }
+    return true;
+  };
+
+  const putraAthletes = sortAndRankAthletes(rawList.filter(a => a.gender === 'Putra' && filterFn(a)));
+  const putriAthletes = sortAndRankAthletes(rawList.filter(a => a.gender === 'Putri' && filterFn(a)));
+
+  renderStats(rawList.length, [...putraAthletes, ...putriAthletes]);
+
+  if (DOM.splitPutraContainer) {
+    DOM.splitPutraContainer.innerHTML = buildDivisionCardHtml('Divisi Putra (Pria)', 'blue', putraAthletes);
+    attachRowClickListeners(DOM.splitPutraContainer, putraAthletes);
+  }
+  if (DOM.splitPutriContainer) {
+    DOM.splitPutriContainer.innerHTML = buildDivisionCardHtml('Divisi Putri (Wanita)', 'pink', putriAthletes);
+    attachRowClickListeners(DOM.splitPutriContainer, putriAthletes);
+  }
+
+  updateFilterSummary(rawList.length, putraAthletes.length + putriAthletes.length);
+}
+
+function buildDivisionCardHtml(title, colorTheme, rankedList) {
+  const isBlue = colorTheme === 'blue';
+  const borderCol = isBlue ? 'border-t-blue-600' : 'border-t-pink-600';
+  const textCol = isBlue ? 'text-blue-900' : 'text-pink-900';
+  const icon = isBlue ? 'ph-gender-male' : 'ph-gender-female';
+
+  let podiumHtml = '';
+  if (rankedList.length > 0) {
+    const champ = rankedList[0];
+    podiumHtml = `
+      <div class="mb-4 p-3.5 rounded-xl bg-gradient-to-r ${isBlue ? 'from-amber-50 to-blue-50 border-amber-200' : 'from-amber-50 to-pink-50 border-amber-200'} border flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full rank-gold flex items-center justify-center font-black shadow-sm">
+            <i class="ph-fill ph-crown text-lg text-amber-950"></i>
+          </div>
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-amber-800 block">Juara 1 &bull; Emas</span>
+            <div class="font-black text-sm text-slate-900 truncate">${escapeHtml(champ.nama)}</div>
+            <div class="text-[11px] text-slate-600">${escapeHtml(champ.kontingen)}</div>
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="font-black font-mono-numbers text-xl text-slate-900">${champ.skorTotal}</div>
+          <div class="text-xs font-bold text-amber-700">${champ.totalX} X</div>
+        </div>
+      </div>
+    `;
+  }
+
+  let rowsHtml = '';
+  if (rankedList.length === 0) {
+    rowsHtml = `<tr><td colspan="4" class="p-6 text-center text-slate-400 text-xs">Belum ada peserta di divisi ini</td></tr>`;
+  } else {
+    rankedList.forEach(athlete => {
+      rowsHtml += `
+        <tr class="hover:bg-slate-50 cursor-pointer athlete-row transition" data-athlete-id="${athlete.id}">
+          <td class="py-2.5 px-3 text-center">${getRankBadgeHtml(athlete.rank)}</td>
+          <td class="py-2.5 px-3">
+            <div class="font-bold text-slate-900 text-sm leading-tight">${escapeHtml(athlete.nama)}</div>
+            <div class="text-[11px] text-slate-500">${escapeHtml(athlete.kontingen)} &bull; <span class="font-mono">${athlete.kategori}</span></div>
+          </td>
+          <td class="py-2.5 px-3 text-right font-mono-numbers text-xs font-bold text-slate-600">${athlete.totalX} X</td>
+          <td class="py-2.5 px-3 text-right font-mono-numbers font-black text-base text-perbakin-navy">${athlete.skorTotal}</td>
+        </tr>
+      `;
+    });
+  }
+
+  return `
+    <div class="bg-white rounded-xl outdoor-card p-4 border-t-4 ${borderCol} flex flex-col justify-between">
+      <div>
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+          <div class="flex items-center gap-2">
+            <i class="ph-bold ${icon} text-lg ${isBlue ? 'text-blue-700' : 'text-pink-600'}"></i>
+            <h3 class="font-extrabold text-base ${textCol}">${title}</h3>
+          </div>
+          <span class="text-xs px-2 py-0.5 rounded-full font-bold ${isBlue ? 'bg-blue-100 text-blue-800' : 'bg-pink-100 text-pink-800'} font-mono">${rankedList.length} Atlet</span>
+        </div>
+        ${podiumHtml}
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500 font-bold border-b border-slate-200">
+                <th class="py-2 px-3 text-center w-12">Pos</th>
+                <th class="py-2 px-3">Atlet</th>
+                <th class="py-2 px-3 text-right w-16">X</th>
+                <th class="py-2 px-3 text-right w-20">Skor</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              ${rowsHtml}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function attachRowClickListeners(container, list) {
+  const rows = container.querySelectorAll('.athlete-row');
+  rows.forEach(row => {
+    row.addEventListener('click', () => {
+      const id = row.getAttribute('data-athlete-id');
+      const found = list.find(a => a.id === id);
+      if (found) openAthleteModal(found);
+    });
+  });
+}
+
+// ==============================================================================
+// 11. RENDERING ANTARMUKA UMUM
 // ==============================================================================
 function renderStats(totalRaw, rankedList) {
   DOM.statTotalShooters.textContent = totalRaw;
@@ -771,12 +956,13 @@ function renderStats(totalRaw, rankedList) {
 }
 
 function updateFilterSummary(totalRaw, totalFiltered) {
-  let text = `Menampilkan <span class="font-bold text-slate-800">${totalFiltered} dari ${totalRaw}</span> atlet`;
+  const divLabel = state.activeDivision === 'Putri' 
+    ? 'Divisi Putri' 
+    : (state.activeDivision === 'Putra' ? 'Divisi Putra' : 'Dua Divisi Terpisah');
+
+  let text = `Menampilkan <span class="font-bold text-slate-800">${totalFiltered} dari ${totalRaw}</span> atlet di <span class="font-bold text-blue-700">${divLabel}</span>`;
   if (state.filters.kategori !== 'ALL') {
     text += ` &bull; Kategori: <span class="font-bold text-blue-700">${state.filters.kategori}</span>`;
-  }
-  if (state.filters.gender !== 'ALL') {
-    text += ` &bull; Gender: <span class="font-bold text-blue-700">${state.filters.gender}</span>`;
   }
   if (state.filters.search) {
     text += ` &bull; Pencarian: "<span class="font-bold text-slate-800">${escapeHtml(state.filters.search)}</span>"`;
@@ -785,7 +971,6 @@ function updateFilterSummary(totalRaw, totalFiltered) {
 }
 
 function renderPodium(rankedList) {
-  // Hanya tampilkan jika tidak sedang pencarian spesifik dan ada minimal 1 atlet
   if (rankedList.length === 0 || state.filters.search) {
     DOM.podiumSection.classList.add('hidden');
     return;
@@ -804,7 +989,7 @@ function renderPodium(rankedList) {
     }
     el.classList.remove('opacity-40');
     el.querySelector('.podium-name').textContent = athlete.nama;
-    el.querySelector('.podium-team').textContent = `${athlete.kontingen} &bull; ${athlete.kategori} ${athlete.gender}`;
+    el.querySelector('.podium-team').textContent = `${athlete.kontingen} &bull; ${athlete.kategori}`;
     el.querySelector('.podium-score').textContent = athlete.skorTotal;
     el.querySelector('.podium-x').textContent = `${athlete.totalX} X`;
   };
@@ -819,7 +1004,8 @@ function renderTableView(rankedList) {
 
   rankedList.forEach(athlete => {
     const tr = document.createElement('tr');
-    tr.className = `transition-colors hover:bg-blue-50/50 ${getRowHighlightClass(athlete.rank)}`;
+    tr.className = `transition-colors hover:bg-blue-50/50 cursor-pointer ${getRowHighlightClass(athlete.rank)}`;
+    tr.addEventListener('click', () => openAthleteModal(athlete));
 
     const rankBadge = getRankBadgeHtml(athlete.rank);
     const genderBadge = athlete.gender === 'Putra' 
@@ -877,7 +1063,8 @@ function renderDenseView(rankedList) {
 
   rankedList.forEach(athlete => {
     const card = document.createElement('div');
-    card.className = `p-3 sm:p-4 transition-colors hover:bg-slate-50 flex items-center justify-between gap-3 ${getRowHighlightClass(athlete.rank)}`;
+    card.className = `p-3 sm:p-4 transition-colors hover:bg-slate-50 cursor-pointer flex items-center justify-between gap-3 ${getRowHighlightClass(athlete.rank)}`;
+    card.addEventListener('click', () => openAthleteModal(athlete));
 
     const rankBadge = getRankBadgeHtml(athlete.rank);
 
@@ -947,7 +1134,36 @@ function updateConnectionStatus(isOnline, customLabel = null) {
 }
 
 // ==============================================================================
-// 11. SOFT-REFRESH POLLING ENGINE (PRD Item 5)
+// 12. ATHLETE DETAIL MODAL
+// ==============================================================================
+function openAthleteModal(athlete) {
+  if (!DOM.athleteDetailModal || !athlete) return;
+
+  if (DOM.modalAthleteName) DOM.modalAthleteName.textContent = athlete.nama;
+  if (DOM.modalAthleteMeta) DOM.modalAthleteMeta.textContent = `${athlete.kontingen} • ${athlete.kategori} ${athlete.gender}`;
+  if (DOM.modalAthleteScore) DOM.modalAthleteScore.textContent = athlete.skorTotal;
+  if (DOM.modalAthleteX) DOM.modalAthleteX.textContent = `${athlete.totalX} X`;
+  if (DOM.modalAthleteId) DOM.modalAthleteId.textContent = athlete.id || '-';
+  if (DOM.modalAthleteTeam) DOM.modalAthleteTeam.textContent = athlete.kontingen || '-';
+  if (DOM.modalAthleteCatGen) DOM.modalAthleteCatGen.textContent = `${athlete.kategori} (${athlete.gender})`;
+  if (DOM.modalAthleteTime) DOM.modalAthleteTime.textContent = athlete.waktuInput || '-';
+
+  if (DOM.modalAthleteAvg) {
+    const avg = athlete.skorTotal > 0 ? (athlete.skorTotal / 60).toFixed(2) : '0.00';
+    DOM.modalAthleteAvg.textContent = `${avg} / 10 Poin per Tembakan`;
+  }
+
+  DOM.athleteDetailModal.classList.remove('hidden');
+}
+
+function closeAthleteModal() {
+  if (DOM.athleteDetailModal) {
+    DOM.athleteDetailModal.classList.add('hidden');
+  }
+}
+
+// ==============================================================================
+// 13. SOFT-REFRESH POLLING ENGINE (PRD Item 5)
 // ==============================================================================
 function startCountdownTicker() {
   if (state.timerInterval) clearInterval(state.timerInterval);
@@ -956,14 +1172,12 @@ function startCountdownTicker() {
   state.timerInterval = setInterval(() => {
     state.countdown--;
     
-    // Update progress bar
     const percent = Math.max(0, Math.min(100, (state.countdown / state.pollIntervalSec) * 100));
     DOM.refreshProgressBar.style.width = `${percent}%`;
     DOM.countdownTimer.textContent = `${state.countdown}s`;
 
     if (state.countdown <= 0) {
       resetCountdown();
-      // Lakukan pembaruan data secara transparan di background (soft-refresh)
       loadCurrentSheetData(true);
     }
   }, 1000);
@@ -976,7 +1190,7 @@ function resetCountdown() {
 }
 
 // ==============================================================================
-// 12. SETTINGS MODAL MANAGEMENT
+// 14. SETTINGS MODAL MANAGEMENT
 // ==============================================================================
 function openSettingsModal() {
   DOM.cfgSpreadsheetId.value = state.spreadsheetId;
@@ -1017,13 +1231,11 @@ function saveSettingsModal() {
   state.pollIntervalSec = newInterval;
   state.apiKey = newApiKey;
 
-  // Persist to localStorage
   localStorage.setItem(STORAGE_KEYS.SPREADSHEET_ID, newId);
   localStorage.setItem(STORAGE_KEYS.SHEET_NAMES, JSON.stringify(sheetList));
   localStorage.setItem(STORAGE_KEYS.POLL_INTERVAL, newInterval.toString());
   localStorage.setItem(STORAGE_KEYS.API_KEY, newApiKey);
 
-  // If current sheet is not in new list, pick the first
   if (!state.sheets.includes(state.currentSheet)) {
     state.currentSheet = state.sheets[0];
   }
@@ -1034,7 +1246,6 @@ function saveSettingsModal() {
   startCountdownTicker();
   closeSettingsModal();
 
-  // Reload data
   loadCurrentSheetData(false);
 }
 
@@ -1049,7 +1260,7 @@ function resetSettingsToDefault() {
 }
 
 // ==============================================================================
-// 13. UTILITIES
+// 15. UTILITIES
 // ==============================================================================
 function escapeHtml(text) {
   if (!text) return '';
@@ -1063,8 +1274,6 @@ function escapeHtml(text) {
 
 function formatTimeSnippet(datetimeStr) {
   if (!datetimeStr || datetimeStr === '-') return '-';
-  // If format "2025-05-18 09:30:00"
   const parts = datetimeStr.split(' ');
   return parts.length > 1 ? parts[1] : datetimeStr;
 }
-

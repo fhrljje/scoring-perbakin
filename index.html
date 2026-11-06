@@ -52,7 +52,7 @@
         <div>
           <h2 class="text-base font-black tracking-wide uppercase">PENGURUS BESAR PERSATUAN MENEMBAK INDONESIA (PB. PERBAKIN)</h2>
           <h1 class="text-xl font-extrabold uppercase mt-0.5">LEMBAR HASIL PERTANDINGAN RESMI (RESULTS BULLETIN)</h1>
-          <p class="text-xs text-slate-600 mt-0.5">Nomor Tanding: <span id="printClassTitle" class="font-bold">Air Pistol ISSF 10M</span> | Status: HASIL RESMI (VERIFIED)</p>
+          <p class="text-xs text-slate-600 mt-0.5">Nomor Tanding: <span id="printClassTitle" class="font-bold">Air Pistol ISSF 10M - Divisi Putra</span> | Status: HASIL RESMI (VERIFIED)</p>
         </div>
       </div>
       <div class="text-right text-xs font-mono text-slate-700">
@@ -91,7 +91,7 @@
           </div>
         </div>
 
-        <!-- Header Actions: Refresh countdown, Sound, Print, TV mode, Settings -->
+        <!-- Header Actions: Refresh countdown, Print, TV mode, Settings -->
         <div class="flex items-center gap-2 sm:gap-3">
           <!-- Refresh Countdown & Trigger -->
           <div class="text-right hidden md:block">
@@ -179,16 +179,46 @@
       </div>
     </section>
 
-    <!-- DYNAMIC CLASS TABS (Air Pistol, Air Rifle, dll) -->
-    <section class="bg-white rounded-xl p-2 sm:p-2.5 outdoor-card no-print">
-      <div class="flex items-center justify-between gap-2 flex-wrap">
-        <div class="text-xs font-bold uppercase tracking-wider text-slate-500 px-2 flex items-center gap-1.5">
-          <i class="ph-bold ph-list-dashes text-blue-700"></i>
-          <span>Pilih Kelas / Sheet:</span>
+    <!-- DYNAMIC CLASS TABS & EXPLICIT GENDER DIVISION BAR -->
+    <section class="bg-white rounded-xl p-3 sm:p-4 outdoor-card no-print space-y-3">
+      <!-- Baris 1: Pilihan Nomor Tanding / Kelas (Air Pistol, Air Rifle) -->
+      <div class="flex items-center justify-between gap-2 flex-wrap pb-3 border-b border-slate-100">
+        <div class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+          <i class="ph-bold ph-target text-blue-700"></i>
+          <span>Nomor Tanding:</span>
         </div>
-        <div id="classTabsContainer" class="flex items-center gap-1.5 sm:gap-2 flex-wrap flex-1 justify-start sm:justify-end">
+        <div id="classTabsContainer" class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
           <!-- Dynamic tabs injected by JS -->
           <div class="px-4 py-2 text-xs font-medium text-slate-500 animate-pulse">Menghubungkan tab kelas...</div>
+        </div>
+      </div>
+
+      <!-- Baris 2: Pemisahan Resmi Kelas Pria (Putra) & Wanita (Putri) -->
+      <div class="flex items-center justify-between gap-2 flex-wrap pt-0.5">
+        <div class="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+          <i class="ph-bold ph-users-three text-amber-600"></i>
+          <span>Kelas / Divisi Gender:</span>
+        </div>
+        <div class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 gap-1">
+          <!-- Tombol Divisi Putra -->
+          <button id="btnDivisionPutra" data-division="Putra" class="px-3 sm:px-4 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 bg-blue-700 text-white shadow-sm">
+            <i class="ph-bold ph-gender-male text-sm"></i>
+            <span>Divisi Putra (Pria)</span>
+            <span id="badgeCountPutra" class="px-1.5 py-0.2 rounded-full text-[10px] bg-blue-900/60 text-white font-mono font-bold">0</span>
+          </button>
+          
+          <!-- Tombol Divisi Putri -->
+          <button id="btnDivisionPutri" data-division="Putri" class="px-3 sm:px-4 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 text-slate-600 hover:text-slate-900">
+            <i class="ph-bold ph-gender-female text-sm text-pink-600"></i>
+            <span>Divisi Putri (Wanita)</span>
+            <span id="badgeCountPutri" class="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-200 text-slate-700 font-mono font-bold">0</span>
+          </button>
+
+          <!-- Tombol Tampilkan Berdampingan (Split View) -->
+          <button id="btnDivisionSplit" data-division="SPLIT" class="px-3 sm:px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 text-slate-600 hover:text-slate-900 hidden md:flex">
+            <i class="ph-bold ph-columns text-sm text-amber-600"></i>
+            <span>Berdampingan (Dua Divisi)</span>
+          </button>
         </div>
       </div>
     </section>
@@ -211,12 +241,12 @@
           </button>
         </div>
 
-        <!-- Filter Chips: Kategori & Gender -->
+        <!-- Filter Chips: Kategori & View mode toggle -->
         <div class="flex flex-wrap items-center gap-2">
           
           <!-- Kategori Filter -->
           <div class="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200">
-            <span class="text-xs font-bold text-slate-500 px-2 hidden sm:inline">Kategori:</span>
+            <span class="text-xs font-bold text-slate-500 px-2 hidden sm:inline">Kategori Usia:</span>
             <button data-filter-type="kategori" data-filter-val="ALL" class="filter-chip-kat active-filter-chip px-2.5 py-1 text-xs font-semibold rounded-md transition">
               Semua
             </button>
@@ -225,20 +255,6 @@
             </button>
             <button data-filter-type="kategori" data-filter-val="Junior" class="filter-chip-kat px-2.5 py-1 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-md transition">
               Junior
-            </button>
-          </div>
-
-          <!-- Gender Filter -->
-          <div class="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200">
-            <span class="text-xs font-bold text-slate-500 px-2 hidden sm:inline">Gender:</span>
-            <button data-filter-type="gender" data-filter-val="ALL" class="filter-chip-gender active-filter-chip px-2.5 py-1 text-xs font-semibold rounded-md transition">
-              Semua
-            </button>
-            <button data-filter-type="gender" data-filter-val="Putra" class="filter-chip-gender px-2.5 py-1 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-md transition">
-              Putra
-            </button>
-            <button data-filter-type="gender" data-filter-val="Putri" class="filter-chip-gender px-2.5 py-1 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-md transition">
-              Putri
             </button>
           </div>
 
@@ -259,7 +275,7 @@
       <!-- Active Filter Summary & Tie-Breaker Info Notice -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between text-xs text-slate-500 pt-1 border-t border-slate-100 gap-1">
         <div id="filterSummaryText">
-          Menampilkan seluruh peserta terdaftar di kelas <span class="font-bold text-slate-800" id="filterClassLabel">Air Pistol</span>
+          Menampilkan atlet di kelas <span class="font-bold text-slate-800" id="filterClassLabel">Air Pistol</span>
         </div>
         <div class="flex items-center gap-1.5 text-slate-600 font-medium">
           <i class="ph-bold ph-info text-blue-600"></i>
@@ -268,158 +284,173 @@
       </div>
     </section>
 
-    <!-- TOP 3 PODIUM PREVIEW (Tampil jika ada data) -->
-    <section id="podiumSection" class="hidden no-print">
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <!-- Juara 2 (Perak) -->
-        <div id="podium2" class="outdoor-card rounded-xl p-4 border-t-4 border-slate-400 bg-gradient-to-b from-slate-50 to-white order-2 sm:order-1 flex flex-col justify-between">
-          <div class="flex items-center justify-between">
-            <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-200 text-slate-700 font-extrabold text-sm border border-slate-300">
-              2
-            </span>
-            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Perak</span>
-          </div>
-          <div class="my-3">
-            <h3 class="podium-name font-bold text-base text-slate-900 truncate">-</h3>
-            <p class="podium-team text-xs font-semibold text-slate-500 truncate">-</p>
-          </div>
-          <div class="flex items-baseline justify-between pt-2 border-t border-slate-100">
-            <div class="podium-score font-extrabold font-mono-numbers text-xl text-slate-800">-</div>
-            <div class="podium-x text-xs font-bold text-slate-600 font-mono-numbers">- X</div>
-          </div>
-        </div>
-
-        <!-- Juara 1 (Emas) -->
-        <div id="podium1" class="outdoor-card rounded-xl p-4 sm:p-5 border-t-4 border-amber-500 bg-gradient-to-b from-amber-50/70 to-white order-1 sm:order-2 flex flex-col justify-between shadow-md">
-          <div class="flex items-center justify-between">
-            <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-amber-400 text-amber-950 font-extrabold text-base border-2 border-amber-500 shadow-sm">
-              <i class="ph-fill ph-crown text-lg"></i>
-            </span>
-            <span class="text-xs font-black text-amber-700 uppercase tracking-wider bg-amber-100 px-2 py-0.5 rounded border border-amber-300">
-              Juara 1 &bull; Emas
-            </span>
-          </div>
-          <div class="my-3">
-            <h3 class="podium-name font-black text-lg text-slate-900 truncate">-</h3>
-            <p class="podium-team text-xs font-bold text-amber-900 truncate">-</p>
-          </div>
-          <div class="flex items-baseline justify-between pt-2 border-t border-amber-200">
-            <div>
-              <span class="text-[10px] text-slate-500 block uppercase font-bold">Skor Total</span>
-              <span class="podium-score font-black font-mono-numbers text-2xl text-amber-800">-</span>
-            </div>
-            <div class="text-right">
-              <span class="text-[10px] text-slate-500 block uppercase font-bold">Inner 10</span>
-              <span class="podium-x text-sm font-extrabold text-amber-700 font-mono-numbers">- X</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Juara 3 (Perunggu) -->
-        <div id="podium3" class="outdoor-card rounded-xl p-4 border-t-4 border-amber-700 bg-gradient-to-b from-orange-50/40 to-white order-3 sm:order-3 flex flex-col justify-between">
-          <div class="flex items-center justify-between">
-            <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-amber-200 text-amber-900 font-extrabold text-sm border border-amber-400">
-              3
-            </span>
-            <span class="text-xs font-bold text-amber-800 uppercase tracking-wider">Perunggu</span>
-          </div>
-          <div class="my-3">
-            <h3 class="podium-name font-bold text-base text-slate-900 truncate">-</h3>
-            <p class="podium-team text-xs font-semibold text-slate-500 truncate">-</p>
-          </div>
-          <div class="flex items-baseline justify-between pt-2 border-t border-slate-100">
-            <div class="podium-score font-extrabold font-mono-numbers text-xl text-slate-800">-</div>
-            <div class="podium-x text-xs font-bold text-slate-600 font-mono-numbers">- X</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- LEADERBOARD DATA CONTAINER -->
-    <section class="bg-white rounded-xl outdoor-card overflow-hidden">
+    <!-- SECTION A: SINGLE DIVISION (PUTRA atau PUTRI) -->
+    <div id="singleDivisionSection" class="space-y-4 sm:space-y-6">
       
-      <!-- Table Header & Count -->
-      <div class="px-4 py-3 bg-slate-50/90 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2">
-        <div class="flex items-center gap-2">
-          <i class="ph-bold ph-ranking text-blue-700 text-lg"></i>
-          <h2 class="text-sm sm:text-base font-extrabold text-perbakin-navy">
-            Klasemen Peringkat Resmi
-          </h2>
-          <span id="rankBadgeCount" class="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-bold font-mono-numbers">
-            0 Atlet
-          </span>
-        </div>
-        <div class="text-xs text-slate-500 flex items-center gap-2 no-print">
-          <span class="inline-block w-2.5 h-2.5 rounded-full bg-amber-400"></span> Emas (1)
-          <span class="inline-block w-2.5 h-2.5 rounded-full bg-slate-400"></span> Perak (2)
-          <span class="inline-block w-2.5 h-2.5 rounded-full bg-amber-700"></span> Perunggu (3)
-        </div>
-      </div>
+      <!-- TOP 3 PODIUM PREVIEW KHUSUS DIVISI AKTIF -->
+      <section id="podiumSection" class="hidden no-print">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <!-- Juara 2 (Perak) -->
+          <div id="podium2" class="outdoor-card rounded-xl p-4 border-t-4 border-slate-400 bg-gradient-to-b from-slate-50 to-white order-2 sm:order-1 flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-200 text-slate-700 font-extrabold text-sm border border-slate-300">
+                2
+              </span>
+              <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Perak</span>
+            </div>
+            <div class="my-3">
+              <h3 class="podium-name font-bold text-base text-slate-900 truncate">-</h3>
+              <p class="podium-team text-xs font-semibold text-slate-500 truncate">-</p>
+            </div>
+            <div class="flex items-baseline justify-between pt-2 border-t border-slate-100">
+              <div class="podium-score font-extrabold font-mono-numbers text-xl text-slate-800">-</div>
+              <div class="podium-x text-xs font-bold text-slate-600 font-mono-numbers">- X</div>
+            </div>
+          </div>
 
-      <!-- VIEW 1: DESKTOP & TABLET TABLE -->
-      <div id="tableViewWrapper" class="overflow-x-auto">
-        <table class="w-full text-left border-collapse">
-          <thead>
-            <tr class="bg-slate-100 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-700 border-b border-slate-200 select-none">
-              <th scope="col" class="py-3 px-3 sm:px-4 text-center w-14">Pos</th>
-              <th scope="col" class="py-3 px-3 sm:px-4">Nama Atlet & Kontingen</th>
-              <th scope="col" class="py-3 px-3 sm:px-4 text-center w-24">Kategori</th>
-              <th scope="col" class="py-3 px-3 sm:px-4 text-center w-20">Gender</th>
-              <th scope="col" class="py-3 px-3 sm:px-4 text-right w-24">Inner 10 (X)</th>
-              <th scope="col" class="py-3 px-3 sm:px-4 text-right w-28 text-perbakin-blue font-extrabold">Skor Total</th>
-              <th scope="col" class="py-3 px-3 sm:px-4 text-center w-24 hidden lg:table-cell">Waktu</th>
-            </tr>
-          </thead>
-          <tbody id="leaderboardTableBody" class="divide-y divide-slate-200 text-sm">
-            <!-- Dynamic rows will be rendered here -->
-          </tbody>
-        </table>
-      </div>
+          <!-- Juara 1 (Emas) -->
+          <div id="podium1" class="outdoor-card rounded-xl p-4 sm:p-5 border-t-4 border-amber-500 bg-gradient-to-b from-amber-50/70 to-white order-1 sm:order-2 flex flex-col justify-between shadow-md">
+            <div class="flex items-center justify-between">
+              <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-amber-400 text-amber-950 font-extrabold text-base border-2 border-amber-500 shadow-sm">
+                <i class="ph-fill ph-crown text-lg"></i>
+              </span>
+              <span class="text-xs font-black text-amber-700 uppercase tracking-wider bg-amber-100 px-2 py-0.5 rounded border border-amber-300">
+                Juara 1 &bull; Emas
+              </span>
+            </div>
+            <div class="my-3">
+              <h3 class="podium-name font-black text-lg text-slate-900 truncate">-</h3>
+              <p class="podium-team text-xs font-bold text-amber-900 truncate">-</p>
+            </div>
+            <div class="flex items-baseline justify-between pt-2 border-t border-amber-200">
+              <div>
+                <span class="text-[10px] text-slate-500 block uppercase font-bold">Skor Total</span>
+                <span class="podium-score font-black font-mono-numbers text-2xl text-amber-800">-</span>
+              </div>
+              <div class="text-right">
+                <span class="text-[10px] text-slate-500 block uppercase font-bold">Inner 10</span>
+                <span class="podium-x text-sm font-extrabold text-amber-700 font-mono-numbers">- X</span>
+              </div>
+            </div>
+          </div>
 
-      <!-- VIEW 2: DENSE MOBILE CARDS -->
-      <div id="denseViewWrapper" class="hidden divide-y divide-slate-200 no-print">
-        <!-- Dynamic mobile dense cards rendered here -->
-      </div>
-
-      <!-- STATE: LOADING SKELETON -->
-      <div id="loadingState" class="p-8 space-y-4 no-print">
-        <div class="flex items-center justify-center gap-3 text-perbakin-blue py-6">
-          <i class="ph-bold ph-spinner animate-spin text-3xl"></i>
-          <span class="text-sm font-bold">Mengambil data skor terbaru dari Google Sheets...</span>
+          <!-- Juara 3 (Perunggu) -->
+          <div id="podium3" class="outdoor-card rounded-xl p-4 border-t-4 border-amber-700 bg-gradient-to-b from-orange-50/40 to-white order-3 sm:order-3 flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-amber-200 text-amber-900 font-extrabold text-sm border border-amber-400">
+                3
+              </span>
+              <span class="text-xs font-bold text-amber-800 uppercase tracking-wider">Perunggu</span>
+            </div>
+            <div class="my-3">
+              <h3 class="podium-name font-bold text-base text-slate-900 truncate">-</h3>
+              <p class="podium-team text-xs font-semibold text-slate-500 truncate">-</p>
+            </div>
+            <div class="flex items-baseline justify-between pt-2 border-t border-slate-100">
+              <div class="podium-score font-extrabold font-mono-numbers text-xl text-slate-800">-</div>
+              <div class="podium-x text-xs font-bold text-slate-600 font-mono-numbers">- X</div>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <!-- STATE: EMPTY / NO DATA -->
-      <div id="emptyState" class="hidden p-12 text-center no-print">
-        <div class="w-14 h-14 mx-auto rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-3">
-          <i class="ph-bold ph-magnifying-glass text-2xl"></i>
+      <!-- LEADERBOARD DATA CONTAINER UNTUK DIVISI AKTIF -->
+      <section class="bg-white rounded-xl outdoor-card overflow-hidden">
+        
+        <!-- Table Header & Count -->
+        <div class="px-4 py-3 bg-slate-50/90 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2">
+          <div class="flex items-center gap-2">
+            <i class="ph-bold ph-ranking text-blue-700 text-lg"></i>
+            <h2 id="divisionHeaderTitle" class="text-sm sm:text-base font-extrabold text-perbakin-navy">
+              Klasemen Resmi Divisi Putra (Pria)
+            </h2>
+            <span id="rankBadgeCount" class="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-bold font-mono-numbers">
+              0 Atlet
+            </span>
+          </div>
+          <div class="text-xs text-slate-500 flex items-center gap-2 no-print">
+            <span class="inline-block w-2.5 h-2.5 rounded-full bg-amber-400"></span> Emas (1)
+            <span class="inline-block w-2.5 h-2.5 rounded-full bg-slate-400"></span> Perak (2)
+            <span class="inline-block w-2.5 h-2.5 rounded-full bg-amber-700"></span> Perunggu (3)
+          </div>
         </div>
-        <h3 class="text-base font-bold text-slate-800">Tidak ada atlet ditemukan</h3>
-        <p class="text-xs sm:text-sm text-slate-500 mt-1 max-w-sm mx-auto">
-          Coba ubah kata kunci pencarian atau sesuaikan filter kategori/gender di atas.
-        </p>
-      </div>
 
-      <!-- STATE: ERROR MESSAGE -->
-      <div id="errorState" class="hidden p-6 sm:p-8 text-center bg-red-50/70 border-t border-red-200 no-print">
-        <div class="w-12 h-12 mx-auto rounded-full bg-red-100 flex items-center justify-center text-red-600 mb-3">
-          <i class="ph-bold ph-warning-circle text-2xl"></i>
+        <!-- VIEW 1: DESKTOP & TABLET TABLE -->
+        <div id="tableViewWrapper" class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-100 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-700 border-b border-slate-200 select-none">
+                <th scope="col" class="py-3 px-3 sm:px-4 text-center w-14">Pos</th>
+                <th scope="col" class="py-3 px-3 sm:px-4">Nama Atlet & Kontingen</th>
+                <th scope="col" class="py-3 px-3 sm:px-4 text-center w-24">Kategori</th>
+                <th scope="col" class="py-3 px-3 sm:px-4 text-center w-20">Gender</th>
+                <th scope="col" class="py-3 px-3 sm:px-4 text-right w-24">Inner 10 (X)</th>
+                <th scope="col" class="py-3 px-3 sm:px-4 text-right w-28 text-perbakin-blue font-extrabold">Skor Total</th>
+                <th scope="col" class="py-3 px-3 sm:px-4 text-center w-24 hidden lg:table-cell">Waktu</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboardTableBody" class="divide-y divide-slate-200 text-sm">
+              <!-- Dynamic rows will be rendered here -->
+            </tbody>
+          </table>
         </div>
-        <h3 class="text-base font-bold text-red-800">Gagal Memuat Data dari Google Sheets</h3>
-        <p id="errorMessage" class="text-xs sm:text-sm text-red-600 mt-1 max-w-md mx-auto">
-          Pastikan link Google Sheets telah dibagikan secara publik ("Anyone with the link can view").
-        </p>
-        <div class="mt-4 flex items-center justify-center gap-3">
-          <button id="btnRetryFetch" class="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center gap-1.5 transition">
-            <i class="ph-bold ph-arrow-counter-clockwise"></i> Coba Lagi
-          </button>
-          <button id="btnOpenSettingsFromError" class="px-4 py-2 rounded-lg bg-white border border-red-300 text-red-800 font-bold text-xs hover:bg-red-50 transition">
-            Periksa Pengaturan
-          </button>
-        </div>
-      </div>
 
-    </section>
+        <!-- VIEW 2: DENSE MOBILE CARDS -->
+        <div id="denseViewWrapper" class="hidden divide-y divide-slate-200 no-print">
+          <!-- Dynamic mobile dense cards rendered here -->
+        </div>
+
+        <!-- STATE: LOADING SKELETON -->
+        <div id="loadingState" class="p-8 space-y-4 no-print">
+          <div class="flex items-center justify-center gap-3 text-perbakin-blue py-6">
+            <i class="ph-bold ph-spinner animate-spin text-3xl"></i>
+            <span class="text-sm font-bold">Mengambil data skor terbaru dari Google Sheets...</span>
+          </div>
+        </div>
+
+        <!-- STATE: EMPTY / NO DATA -->
+        <div id="emptyState" class="hidden p-12 text-center no-print">
+          <div class="w-14 h-14 mx-auto rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-3">
+            <i class="ph-bold ph-magnifying-glass text-2xl"></i>
+          </div>
+          <h3 class="text-base font-bold text-slate-800">Tidak ada atlet di divisi ini</h3>
+          <p class="text-xs sm:text-sm text-slate-500 mt-1 max-w-sm mx-auto">
+            Ganti divisi (Putra/Putri) atau sesuaikan kata kunci pencarian di atas.
+          </p>
+        </div>
+
+        <!-- STATE: ERROR MESSAGE -->
+        <div id="errorState" class="hidden p-6 sm:p-8 text-center bg-red-50/70 border-t border-red-200 no-print">
+          <div class="w-12 h-12 mx-auto rounded-full bg-red-100 flex items-center justify-center text-red-600 mb-3">
+            <i class="ph-bold ph-warning-circle text-2xl"></i>
+          </div>
+          <h3 class="text-base font-bold text-red-800">Gagal Memuat Data dari Google Sheets</h3>
+          <p id="errorMessage" class="text-xs sm:text-sm text-red-600 mt-1 max-w-md mx-auto">
+            Pastikan link Google Sheets telah dibagikan secara publik ("Anyone with the link can view").
+          </p>
+          <div class="mt-4 flex items-center justify-center gap-3">
+            <button id="btnRetryFetch" class="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center gap-1.5 transition">
+              <i class="ph-bold ph-arrow-counter-clockwise"></i> Coba Lagi
+            </button>
+            <button id="btnOpenSettingsFromError" class="px-4 py-2 rounded-lg bg-white border border-red-300 text-red-800 font-bold text-xs hover:bg-red-50 transition">
+              Periksa Pengaturan
+            </button>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+
+    <!-- SECTION B: SPLIT VIEW (DUA DIVISI PUTRA & PUTRI BERDAMPINGAN SECARA MANDIRI) -->
+    <div id="splitViewSection" class="hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <!-- Container Divisi Putra -->
+        <div id="splitPutraContainer"></div>
+        <!-- Container Divisi Putri -->
+        <div id="splitPutriContainer"></div>
+      </div>
+    </div>
 
     <!-- PRINT ONLY FOOTER: SIGNATURE SPACES FOR CRO & JURY (Muncul saat cetak / PDF) -->
     <div id="officialPrintFooter" class="hidden pt-6">
