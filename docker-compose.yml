@@ -1,0 +1,10 @@
+services:
+  scoring-perbakin:
+    build: .
+    container_name: scoring-perbakin-dashboard
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/usr/share/nginx/html:ro
+

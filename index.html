@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>Live Scoring Perbakin - Kejuaraan Menembak Real-Time</title>
+  <meta name="description" content="Web Dashboard Live Scoring Perbakin resmi untuk kejuaraan menembak kelas Air Pistol dan Air Rifle secara real-time.">
+  <meta name="theme-color" content="#0B1F3A">
+  <link rel="icon" type="image/svg+xml" href="assets/perbakin-logo.svg">
+
+  <!-- Tailwind CSS CDN with custom config -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            perbakin: {
+              navy: '#0B1F3A',
+              blue: '#1E3A8A',
+              lightBlue: '#2563EB',
+              accentBlue: '#3B82F6',
+              gold: '#F59E0B',
+              goldLight: '#FEF3C7',
+              goldDark: '#B45309',
+              dark: '#0F172A',
+              gray: '#64748B',
+              light: '#F8FAFC'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Phosphor Icons for clean vector UI icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900 flex flex-col antialiased selection:bg-amber-400 selection:text-slate-900">
+
+  <!-- TOP PROGRESS BAR FOR AUTO-REFRESH -->
+  <div class="fixed top-0 left-0 right-0 h-1 bg-slate-200 z-50 overflow-hidden no-print">
+    <div id="refreshProgressBar" class="h-full bg-gradient-to-r from-amber-500 to-blue-600 w-full refresh-progress-bar"></div>
+  </div>
+
+  <!-- PRINT ONLY HEADER (Muncul saat cetak / simpan ke PDF) -->
+  <div id="officialPrintHeader" class="hidden">
+    <div class="flex items-center justify-between pb-3 border-b-2 border-slate-900">
+      <div class="flex items-center gap-4">
+        <img src="assets/perbakin-logo.svg" alt="Perbakin" class="w-16 h-16 object-contain">
+        <div>
+          <h2 class="text-base font-black tracking-wide uppercase">PENGURUS BESAR PERSATUAN MENEMBAK INDONESIA (PB. PERBAKIN)</h2>
+          <h1 class="text-xl font-extrabold uppercase mt-0.5">LEMBAR HASIL PERTANDINGAN RESMI (RESULTS BULLETIN)</h1>
+          <p class="text-xs text-slate-600 mt-0.5">Nomor Tanding: <span id="printClassTitle" class="font-bold">Air Pistol ISSF 10M</span> | Status: HASIL RESMI (VERIFIED)</p>
+        </div>
+      </div>
+      <div class="text-right text-xs font-mono text-slate-700">
+        <div>Dicetak: <span id="printTimestamp">-</span></div>
+        <div class="text-[10px] text-slate-500">Sistem Live Scoring Perbakin</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HEADER -->
+  <header class="bg-white border-b-2 border-slate-200 shadow-sm sticky top-0 z-40 no-print">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between py-3 sm:py-4">
+        
+        <!-- Logo and Title -->
+        <div class="flex items-center gap-3 sm:gap-4">
+          <div class="w-11 h-11 sm:w-14 sm:h-14 flex-shrink-0 bg-white rounded-lg p-1 border border-slate-200 shadow-sm flex items-center justify-center">
+            <img src="assets/perbakin-logo.svg" alt="Logo Perbakin" class="w-full h-full object-contain">
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                PERBAKIN
+              </span>
+              <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 live-dot relative inline-block"></span>
+                <span>LIVE SCORING</span>
+              </span>
+            </div>
+            <h1 class="text-lg sm:text-2xl font-extrabold tracking-tight text-perbakin-navy leading-tight mt-0.5">
+              Papan Skor Kejuaraan Menembak
+            </h1>
+            <p class="text-xs sm:text-sm text-slate-600 hidden sm:block">
+              Klasemen resmi real-time disinkronkan langsung dari meja juri
+            </p>
+          </div>
+        </div>
+
+        <!-- Header Actions: Refresh countdown, Sound, Print, TV mode, Settings -->
+        <div class="flex items-center gap-2 sm:gap-3">
+          <!-- Refresh Countdown & Trigger -->
+          <div class="text-right hidden md:block">
+            <div class="text-xs font-medium text-slate-500">Auto-refresh dalam</div>
+            <div id="countdownTimer" class="text-sm font-bold font-mono-numbers text-perbakin-blue">20s</div>
+          </div>
+
+          <button id="btnManualRefresh" title="Segarkan Data Sekarang" class="p-2 sm:px-3 sm:py-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-perbakin-blue border border-blue-200 text-sm font-semibold flex items-center gap-1.5 transition active:scale-95">
+            <i id="refreshIcon" class="ph-bold ph-arrows-clockwise text-base"></i>
+            <span class="hidden sm:inline">Segarkan</span>
+          </button>
+
+          <!-- Print / Export Results Button -->
+          <button id="btnPrintResults" title="Cetak / Unduh PDF Hasil Pertandingan" class="p-2 sm:px-3 sm:py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-sm font-semibold flex items-center gap-1.5 transition active:scale-95">
+            <i class="ph-bold ph-printer text-base"></i>
+            <span class="hidden lg:inline">Cetak Hasil</span>
+          </button>
+
+          <button id="btnToggleTv" title="Mode Layar Penuh / TV Venue" class="p-2 sm:px-3 sm:py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-sm font-semibold flex items-center gap-1.5 transition active:scale-95">
+            <i class="ph-bold ph-television-simple text-base"></i>
+            <span class="hidden md:inline">Mode TV</span>
+          </button>
+
+          <button id="btnOpenSettings" title="Pengaturan Database" class="p-2 sm:px-3 sm:py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-sm font-semibold flex items-center gap-1.5 transition active:scale-95">
+            <i class="ph-bold ph-gear text-base"></i>
+            <span class="hidden sm:inline">Konfigurasi</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
+
+    <!-- CONNECTION & STATS BANNER -->
+    <section class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 no-print">
+      <!-- Card 1: Kelas Aktif -->
+      <div class="outdoor-card rounded-xl p-3 sm:p-4 border-l-4 border-l-blue-600">
+        <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Nomor Tanding</div>
+        <div id="statCurrentClass" class="text-base sm:text-xl font-extrabold text-perbakin-navy truncate mt-0.5">
+          Air Pistol
+        </div>
+        <div class="text-xs text-slate-600 mt-1 flex items-center gap-1">
+          <i class="ph-fill ph-target text-blue-600"></i>
+          <span id="statDistance">Jarak ISSF 10M</span>
+        </div>
+      </div>
+
+      <!-- Card 2: Total Peserta -->
+      <div class="outdoor-card rounded-xl p-3 sm:p-4 border-l-4 border-l-amber-500">
+        <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Atlet</div>
+        <div id="statTotalShooters" class="text-base sm:text-xl font-extrabold font-mono-numbers text-slate-900 mt-0.5">
+          -
+        </div>
+        <div class="text-xs text-slate-600 mt-1 flex items-center gap-1">
+          <i class="ph-fill ph-users-three text-amber-500"></i>
+          <span id="statFilteredShooters">Menampilkan semua</span>
+        </div>
+      </div>
+
+      <!-- Card 3: Pimpinan Skor Tertinggi -->
+      <div class="outdoor-card rounded-xl p-3 sm:p-4 border-l-4 border-l-emerald-500 col-span-1">
+        <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Pimpinan Skor (Rank 1)</div>
+        <div id="statLeaderName" class="text-base sm:text-xl font-extrabold text-emerald-700 truncate mt-0.5">
+          -
+        </div>
+        <div class="text-xs text-slate-600 mt-1 flex items-center gap-1">
+          <i class="ph-fill ph-trophy text-emerald-600"></i>
+          <span id="statLeaderScore" class="font-bold font-mono-numbers text-slate-800">-</span>
+        </div>
+      </div>
+
+      <!-- Card 4: Waktu Sinkronisasi Terakhir -->
+      <div class="outdoor-card rounded-xl p-3 sm:p-4 border-l-4 border-l-indigo-500 col-span-1">
+        <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Update Terakhir</div>
+        <div id="statLastUpdated" class="text-sm sm:text-lg font-bold font-mono-numbers text-slate-800 truncate mt-0.5">
+          Memuat data...
+        </div>
+        <div class="text-xs text-slate-600 mt-1 flex items-center gap-1">
+          <i class="ph-fill ph-broadcast text-indigo-500"></i>
+          <span id="statConnectionStatus" class="text-emerald-700 font-semibold">Tersambung ke Sheets</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- DYNAMIC CLASS TABS (Air Pistol, Air Rifle, dll) -->
+    <section class="bg-white rounded-xl p-2 sm:p-2.5 outdoor-card no-print">
+      <div class="flex items-center justify-between gap-2 flex-wrap">
+        <div class="text-xs font-bold uppercase tracking-wider text-slate-500 px-2 flex items-center gap-1.5">
+          <i class="ph-bold ph-list-dashes text-blue-700"></i>
+          <span>Pilih Kelas / Sheet:</span>
+        </div>
+        <div id="classTabsContainer" class="flex items-center gap-1.5 sm:gap-2 flex-wrap flex-1 justify-start sm:justify-end">
+          <!-- Dynamic tabs injected by JS -->
+          <div class="px-4 py-2 text-xs font-medium text-slate-500 animate-pulse">Menghubungkan tab kelas...</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FILTER & SEARCH TOOLBAR -->
+    <section class="bg-white rounded-xl p-3 sm:p-4 outdoor-card space-y-3 no-print">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        
+        <!-- Search bar -->
+        <div class="relative flex-1 min-w-[240px]">
+          <i class="ph-bold ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-base"></i>
+          <input 
+            type="text" 
+            id="searchInput" 
+            placeholder="Cari nama atlet atau daerah/kontingen..." 
+            class="w-full pl-10 pr-9 py-2 rounded-lg border border-slate-300 bg-slate-50 hover:bg-white focus:bg-white text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-perbakin-blue focus:border-transparent transition"
+          >
+          <button id="btnClearSearch" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-sm">
+            <i class="ph-bold ph-x-circle text-base"></i>
+          </button>
+        </div>
+
+        <!-- Filter Chips: Kategori & Gender -->
+        <div class="flex flex-wrap items-center gap-2">
+          
+          <!-- Kategori Filter -->
+          <div class="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200">
+            <span class="text-xs font-bold text-slate-500 px-2 hidden sm:inline">Kategori:</span>
+            <button data-filter-type="kategori" data-filter-val="ALL" class="filter-chip-kat active-filter-chip px-2.5 py-1 text-xs font-semibold rounded-md transition">
+              Semua
+            </button>
+            <button data-filter-type="kategori" data-filter-val="Senior" class="filter-chip-kat px-2.5 py-1 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-md transition">
+              Senior
+            </button>
+            <button data-filter-type="kategori" data-filter-val="Junior" class="filter-chip-kat px-2.5 py-1 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-md transition">
+              Junior
+            </button>
+          </div>
+
+          <!-- Gender Filter -->
+          <div class="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200">
+            <span class="text-xs font-bold text-slate-500 px-2 hidden sm:inline">Gender:</span>
+            <button data-filter-type="gender" data-filter-val="ALL" class="filter-chip-gender active-filter-chip px-2.5 py-1 text-xs font-semibold rounded-md transition">
+              Semua
+            </button>
+            <button data-filter-type="gender" data-filter-val="Putra" class="filter-chip-gender px-2.5 py-1 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-md transition">
+              Putra
+            </button>
+            <button data-filter-type="gender" data-filter-val="Putri" class="filter-chip-gender px-2.5 py-1 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-md transition">
+              Putri
+            </button>
+          </div>
+
+          <!-- View Mode Toggle (Table vs Dense Cards) -->
+          <div class="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200 ml-auto">
+            <button id="btnViewTable" title="Tampilan Tabel Standar" class="p-1.5 rounded text-blue-700 bg-white shadow-sm text-sm">
+              <i class="ph-bold ph-table text-base"></i>
+            </button>
+            <button id="btnViewDense" title="Tampilan Padat Outdoor (Mobile Friendly)" class="p-1.5 rounded text-slate-600 hover:text-slate-900 text-sm">
+              <i class="ph-bold ph-rows text-base"></i>
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Active Filter Summary & Tie-Breaker Info Notice -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between text-xs text-slate-500 pt-1 border-t border-slate-100 gap-1">
+        <div id="filterSummaryText">
+          Menampilkan seluruh peserta terdaftar di kelas <span class="font-bold text-slate-800" id="filterClassLabel">Air Pistol</span>
+        </div>
+        <div class="flex items-center gap-1.5 text-slate-600 font-medium">
+          <i class="ph-bold ph-info text-blue-600"></i>
+          <span>Aturan Tie-Breaker: Prioritas 1 Skor Total &bull; Prioritas 2 Total X (Inner 10)</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- TOP 3 PODIUM PREVIEW (Tampil jika ada data) -->
+    <section id="podiumSection" class="hidden no-print">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <!-- Juara 2 (Perak) -->
+        <div id="podium2" class="outdoor-card rounded-xl p-4 border-t-4 border-slate-400 bg-gradient-to-b from-slate-50 to-white order-2 sm:order-1 flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-200 text-slate-700 font-extrabold text-sm border border-slate-300">
+              2
+            </span>
+            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Perak</span>
+          </div>
+          <div class="my-3">
+            <h3 class="podium-name font-bold text-base text-slate-900 truncate">-</h3>
+            <p class="podium-team text-xs font-semibold text-slate-500 truncate">-</p>
+          </div>
+          <div class="flex items-baseline justify-between pt-2 border-t border-slate-100">
+            <div class="podium-score font-extrabold font-mono-numbers text-xl text-slate-800">-</div>
+            <div class="podium-x text-xs font-bold text-slate-600 font-mono-numbers">- X</div>
+          </div>
+        </div>
+
+        <!-- Juara 1 (Emas) -->
+        <div id="podium1" class="outdoor-card rounded-xl p-4 sm:p-5 border-t-4 border-amber-500 bg-gradient-to-b from-amber-50/70 to-white order-1 sm:order-2 flex flex-col justify-between shadow-md">
+          <div class="flex items-center justify-between">
+            <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-amber-400 text-amber-950 font-extrabold text-base border-2 border-amber-500 shadow-sm">
+              <i class="ph-fill ph-crown text-lg"></i>
+            </span>
+            <span class="text-xs font-black text-amber-700 uppercase tracking-wider bg-amber-100 px-2 py-0.5 rounded border border-amber-300">
+              Juara 1 &bull; Emas
+            </span>
+          </div>
+          <div class="my-3">
+            <h3 class="podium-name font-black text-lg text-slate-900 truncate">-</h3>
+            <p class="podium-team text-xs font-bold text-amber-900 truncate">-</p>
+          </div>
+          <div class="flex items-baseline justify-between pt-2 border-t border-amber-200">
+            <div>
+              <span class="text-[10px] text-slate-500 block uppercase font-bold">Skor Total</span>
+              <span class="podium-score font-black font-mono-numbers text-2xl text-amber-800">-</span>
+            </div>
+            <div class="text-right">
+              <span class="text-[10px] text-slate-500 block uppercase font-bold">Inner 10</span>
+              <span class="podium-x text-sm font-extrabold text-amber-700 font-mono-numbers">- X</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Juara 3 (Perunggu) -->
+        <div id="podium3" class="outdoor-card rounded-xl p-4 border-t-4 border-amber-700 bg-gradient-to-b from-orange-50/40 to-white order-3 sm:order-3 flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-amber-200 text-amber-900 font-extrabold text-sm border border-amber-400">
+              3
+            </span>
+            <span class="text-xs font-bold text-amber-800 uppercase tracking-wider">Perunggu</span>
+          </div>
+          <div class="my-3">
+            <h3 class="podium-name font-bold text-base text-slate-900 truncate">-</h3>
+            <p class="podium-team text-xs font-semibold text-slate-500 truncate">-</p>
+          </div>
+          <div class="flex items-baseline justify-between pt-2 border-t border-slate-100">
+            <div class="podium-score font-extrabold font-mono-numbers text-xl text-slate-800">-</div>
+            <div class="podium-x text-xs font-bold text-slate-600 font-mono-numbers">- X</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LEADERBOARD DATA CONTAINER -->
+    <section class="bg-white rounded-xl outdoor-card overflow-hidden">
+      
+      <!-- Table Header & Count -->
+      <div class="px-4 py-3 bg-slate-50/90 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2">
+        <div class="flex items-center gap-2">
+          <i class="ph-bold ph-ranking text-blue-700 text-lg"></i>
+          <h2 class="text-sm sm:text-base font-extrabold text-perbakin-navy">
+            Klasemen Peringkat Resmi
+          </h2>
+          <span id="rankBadgeCount" class="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-bold font-mono-numbers">
+            0 Atlet
+          </span>
+        </div>
+        <div class="text-xs text-slate-500 flex items-center gap-2 no-print">
+          <span class="inline-block w-2.5 h-2.5 rounded-full bg-amber-400"></span> Emas (1)
+          <span class="inline-block w-2.5 h-2.5 rounded-full bg-slate-400"></span> Perak (2)
+          <span class="inline-block w-2.5 h-2.5 rounded-full bg-amber-700"></span> Perunggu (3)
+        </div>
+      </div>
+
+      <!-- VIEW 1: DESKTOP & TABLET TABLE -->
+      <div id="tableViewWrapper" class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-100 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-700 border-b border-slate-200 select-none">
+              <th scope="col" class="py-3 px-3 sm:px-4 text-center w-14">Pos</th>
+              <th scope="col" class="py-3 px-3 sm:px-4">Nama Atlet & Kontingen</th>
+              <th scope="col" class="py-3 px-3 sm:px-4 text-center w-24">Kategori</th>
+              <th scope="col" class="py-3 px-3 sm:px-4 text-center w-20">Gender</th>
+              <th scope="col" class="py-3 px-3 sm:px-4 text-right w-24">Inner 10 (X)</th>
+              <th scope="col" class="py-3 px-3 sm:px-4 text-right w-28 text-perbakin-blue font-extrabold">Skor Total</th>
+              <th scope="col" class="py-3 px-3 sm:px-4 text-center w-24 hidden lg:table-cell">Waktu</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboardTableBody" class="divide-y divide-slate-200 text-sm">
+            <!-- Dynamic rows will be rendered here -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- VIEW 2: DENSE MOBILE CARDS -->
+      <div id="denseViewWrapper" class="hidden divide-y divide-slate-200 no-print">
+        <!-- Dynamic mobile dense cards rendered here -->
+      </div>
+
+      <!-- STATE: LOADING SKELETON -->
+      <div id="loadingState" class="p-8 space-y-4 no-print">
+        <div class="flex items-center justify-center gap-3 text-perbakin-blue py-6">
+          <i class="ph-bold ph-spinner animate-spin text-3xl"></i>
+          <span class="text-sm font-bold">Mengambil data skor terbaru dari Google Sheets...</span>
+        </div>
+      </div>
+
+      <!-- STATE: EMPTY / NO DATA -->
+      <div id="emptyState" class="hidden p-12 text-center no-print">
+        <div class="w-14 h-14 mx-auto rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-3">
+          <i class="ph-bold ph-magnifying-glass text-2xl"></i>
+        </div>
+        <h3 class="text-base font-bold text-slate-800">Tidak ada atlet ditemukan</h3>
+        <p class="text-xs sm:text-sm text-slate-500 mt-1 max-w-sm mx-auto">
+          Coba ubah kata kunci pencarian atau sesuaikan filter kategori/gender di atas.
+        </p>
+      </div>
+
+      <!-- STATE: ERROR MESSAGE -->
+      <div id="errorState" class="hidden p-6 sm:p-8 text-center bg-red-50/70 border-t border-red-200 no-print">
+        <div class="w-12 h-12 mx-auto rounded-full bg-red-100 flex items-center justify-center text-red-600 mb-3">
+          <i class="ph-bold ph-warning-circle text-2xl"></i>
+        </div>
+        <h3 class="text-base font-bold text-red-800">Gagal Memuat Data dari Google Sheets</h3>
+        <p id="errorMessage" class="text-xs sm:text-sm text-red-600 mt-1 max-w-md mx-auto">
+          Pastikan link Google Sheets telah dibagikan secara publik ("Anyone with the link can view").
+        </p>
+        <div class="mt-4 flex items-center justify-center gap-3">
+          <button id="btnRetryFetch" class="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center gap-1.5 transition">
+            <i class="ph-bold ph-arrow-counter-clockwise"></i> Coba Lagi
+          </button>
+          <button id="btnOpenSettingsFromError" class="px-4 py-2 rounded-lg bg-white border border-red-300 text-red-800 font-bold text-xs hover:bg-red-50 transition">
+            Periksa Pengaturan
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- PRINT ONLY FOOTER: SIGNATURE SPACES FOR CRO & JURY (Muncul saat cetak / PDF) -->
+    <div id="officialPrintFooter" class="hidden pt-6">
+      <div class="text-xs text-slate-600 mb-4 italic">
+        Hasil pertandingan di atas telah diverifikasi dan disahkan oleh Tim Juri serta Delegasi Teknis Kejuaraan Menembak Perbakin.
+      </div>
+      <div class="grid grid-cols-2 gap-8 text-center text-xs">
+        <div>
+          <p class="font-bold">Mengetahui,</p>
+          <p class="text-slate-600">Chief Range Officer (CRO)</p>
+          <div class="h-16"></div>
+          <p class="font-bold underline uppercase">( ............................................ )</p>
+          <p class="text-[10px] text-slate-500">NRP/ID Wasit Nasional</p>
+        </div>
+        <div>
+          <p class="font-bold">Mengesahkan,</p>
+          <p class="text-slate-600">Ketua Tim Juri Pertandingan</p>
+          <div class="h-16"></div>
+          <p class="font-bold underline uppercase">( ............................................ )</p>
+          <p class="text-[10px] text-slate-500">Jury of Appeal / Technical Delegate</p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ATHLETE DETAIL MODAL (TargetScan profile preview) -->
+  <div id="athleteDetailModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden transform transition-all">
+      <div class="px-6 py-4 bg-perbakin-navy text-white flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center">
+            <i class="ph-bold ph-user-focus text-lg"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-base" id="modalAthleteName">Profil Atlet</h3>
+            <p class="text-xs text-slate-300" id="modalAthleteMeta">Detail Tembakan & Statistik</p>
+          </div>
+        </div>
+        <button id="btnCloseAthleteModal" class="text-slate-300 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
+          <i class="ph-bold ph-x text-lg"></i>
+        </button>
+      </div>
+      <div class="p-6 space-y-4">
+        <!-- Score Highlights -->
+        <div class="grid grid-cols-2 gap-3">
+          <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 text-center">
+            <span class="text-xs font-semibold text-blue-700 block uppercase">Skor Total</span>
+            <span id="modalAthleteScore" class="text-2xl font-black font-mono-numbers text-perbakin-navy">0</span>
+          </div>
+          <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
+            <span class="text-xs font-semibold text-amber-800 block uppercase">Inner 10 (X)</span>
+            <span id="modalAthleteX" class="text-2xl font-black font-mono-numbers text-amber-700">0</span>
+          </div>
+        </div>
+        <!-- Athlete info list -->
+        <div class="bg-slate-50 rounded-xl p-3 border border-slate-200 text-xs space-y-2">
+          <div class="flex justify-between">
+            <span class="text-slate-500">Nomor Registrasi (ID):</span>
+            <span id="modalAthleteId" class="font-mono font-bold text-slate-800">-</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-500">Kontingen / Asal:</span>
+            <span id="modalAthleteTeam" class="font-bold text-slate-800">-</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-500">Kategori & Gender:</span>
+            <span id="modalAthleteCatGen" class="font-bold text-slate-800">-</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-500">Waktu Verifikasi Masuk:</span>
+            <span id="modalAthleteTime" class="font-mono text-slate-800">-</span>
+          </div>
+        </div>
+        <!-- Average estimation -->
+        <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-900 flex items-center justify-between">
+          <span>Estimasi Rata-rata Tembakan:</span>
+          <span id="modalAthleteAvg" class="font-mono font-extrabold text-emerald-800">9.2 / 10</span>
+        </div>
+      </div>
+      <div class="px-6 py-3 bg-slate-50 border-t border-slate-200 text-right">
+        <button id="btnDismissAthleteModal" class="px-4 py-2 text-xs font-bold bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg transition">
+          Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="bg-white border-t border-slate-200 mt-8 py-5 no-print">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center sm:text-left flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+      <div class="flex items-center gap-2">
+        <img src="assets/perbakin-logo.svg" alt="Perbakin" class="h-6 w-auto">
+        <span>&copy; <span id="currentYear">2026</span> Persatuan Menembak Indonesia (PERBAKIN). Web Dashboard Live Scoring.</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <a id="linkGoogleSheet" href="#" target="_blank" rel="noopener noreferrer" class="hover:text-perbakin-blue font-semibold flex items-center gap-1">
+          <i class="ph-bold ph-file-spreadsheet text-emerald-600"></i> Buka Google Sheets
+        </a>
+        <span class="text-slate-300">|</span>
+        <span class="font-mono text-[11px]" id="footerSpreadsheetId">ID: 1vnby6eff...</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- SETTINGS MODAL -->
+  <div id="settingsModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden transform transition-all">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 bg-perbakin-navy text-white flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center">
+            <i class="ph-bold ph-gear text-lg"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-base">Konfigurasi Database</h3>
+            <p class="text-xs text-slate-300">Pengaturan sumber data Google Sheets live scoring</p>
+          </div>
+        </div>
+        <button id="btnCloseSettings" class="text-slate-300 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
+          <i class="ph-bold ph-x text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body Form -->
+      <div class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+        
+        <!-- Field 1: Spreadsheet ID -->
+        <div>
+          <label for="cfgSpreadsheetId" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+            Google Spreadsheet ID <span class="text-red-500">*</span>
+          </label>
+          <input 
+            type="text" 
+            id="cfgSpreadsheetId" 
+            class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent font-mono"
+            placeholder="1vnby6effCDoFOzVA5PpZROz8MNY23o0_K7Skcbh8Li0"
+          >
+          <p class="text-[11px] text-slate-500 mt-1">
+            Dapat diambil dari URL Google Sheets di antara <code class="bg-slate-100 px-1 py-0.5 rounded">/d/</code> dan <code class="bg-slate-100 px-1 py-0.5 rounded">/edit</code>.
+          </p>
+        </div>
+
+        <!-- Field 2: Sheet Names (Daftar Tab Kelas) -->
+        <div>
+          <label for="cfgSheetNames" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+            Daftar Tab Kelas (Pisahkan Koma) <span class="text-red-500">*</span>
+          </label>
+          <input 
+            type="text" 
+            id="cfgSheetNames" 
+            class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+            placeholder="Air Pistol, Air Rifle"
+          >
+          <p class="text-[11px] text-slate-500 mt-1">
+            Nama tab harus persis sama dengan nama sheet di Google Sheets (case-sensitive).
+          </p>
+        </div>
+
+        <!-- Field 3: Auto-Refresh Interval -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label for="cfgRefreshInterval" class="text-xs font-bold uppercase tracking-wider text-slate-700">
+              Interval Auto-Refresh:
+            </label>
+            <span id="cfgIntervalDisplay" class="text-xs font-bold font-mono-numbers text-blue-700">20 Detik</span>
+          </div>
+          <input 
+            type="range" 
+            id="cfgRefreshInterval" 
+            min="10" 
+            max="60" 
+            step="5" 
+            value="20"
+            class="w-full accent-blue-700 cursor-pointer"
+          >
+          <div class="flex justify-between text-[10px] text-slate-400 mt-0.5">
+            <span>10 detik (Sangat Cepat)</span>
+            <span>30 detik</span>
+            <span>60 detik (Hemat Kuota)</span>
+          </div>
+        </div>
+
+        <!-- Field 4: Optional Google Sheets API Key -->
+        <div>
+          <label for="cfgApiKey" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+            Google Sheets API Key (Opsional)
+          </label>
+          <input 
+            type="password" 
+            id="cfgApiKey" 
+            class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent font-mono"
+            placeholder="AIzaSy... (Biarkan kosong untuk mode gviz publik)"
+          >
+          <p class="text-[11px] text-slate-500 mt-1">
+            Tidak wajib diisi. Tanpa API Key, dashboard otomatis menggunakan endpoint visualisasi publik Google.
+          </p>
+        </div>
+
+        <!-- Tips Callout -->
+        <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 flex items-start gap-2">
+          <i class="ph-fill ph-lightbulb text-amber-600 text-base flex-shrink-0 mt-0.5"></i>
+          <div>
+            <strong>Pastikan Izin Akses Spreadsheet:</strong> Setelan berbagi Google Sheets wajib diatur ke <em>"Siapa saja yang memiliki link dapat melihat (Viewer)"</em> agar browser dapat membaca skor tanpa login.
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer Actions -->
+      <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+        <button id="btnResetConfig" class="px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-200 rounded-lg transition">
+          Reset ke Template
+        </button>
+        <div class="flex items-center gap-2">
+          <button id="btnCancelSettings" class="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg transition">
+            Batal
+          </button>
+          <button id="btnSaveSettings" class="px-4 py-2 text-xs font-bold bg-perbakin-blue hover:bg-blue-800 text-white rounded-lg shadow-sm transition">
+            Simpan & Terapkan
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- APPLICATION JAVASCRIPT -->
+  <script src="js/app.js"></script>
+</body>
+</html>

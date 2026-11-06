@@ -1,0 +1,194 @@
+/* Scoring Perbakin Custom Styles */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+
+:root {
+  --perbakin-navy: #0b1f3a;
+  --perbakin-blue: #1e3a8a;
+  --perbakin-gold: #f59e0b;
+  --perbakin-gold-dark: #b45309;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: #f8fafc;
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-mono-numbers {
+  font-family: 'JetBrains Mono', monospace;
+  font-feature-settings: "tnum" 1, "zero" 1;
+}
+
+/* Pulsing Live Badge Animation */
+@keyframes pulse-ring {
+  0% { transform: scale(0.95); opacity: 0.9; }
+  50% { transform: scale(1.15); opacity: 0.4; }
+  100% { transform: scale(0.95); opacity: 0.9; }
+}
+
+.live-dot {
+  position: relative;
+}
+.live-dot::before {
+  content: '';
+  position: absolute;
+  top: -2px; left: -2px; right: -2px; bottom: -2px;
+  background-color: #22c55e;
+  border-radius: 9999px;
+  animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  z-index: 0;
+}
+
+/* Rank Podium Badges */
+.rank-gold {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 10px rgba(245, 158, 11, 0.35);
+}
+
+.rank-silver {
+  background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 8px rgba(100, 116, 139, 0.3);
+}
+
+.rank-bronze {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 8px rgba(180, 83, 9, 0.3);
+}
+
+/* Outdoor High Contrast Sunlight Readability */
+.outdoor-card {
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.08);
+}
+
+/* Row Score Update Highlight Animation */
+@keyframes score-pulse {
+  0% { background-color: rgba(254, 240, 138, 0.9); }
+  100% { background-color: transparent; }
+}
+
+.row-updated {
+  animation: score-pulse 2.5s ease-out;
+}
+
+/* Subtle Shimmer for Soft Refresh */
+@keyframes soft-shimmer {
+  0% { opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { opacity: 0.7; }
+}
+
+.updating-shimmer {
+  animation: soft-shimmer 1s ease-in-out infinite;
+}
+
+/* Progress bar for timer */
+.refresh-progress-bar {
+  transition: width 1s linear;
+}
+
+/* Custom Scrollbar for dense view */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* TV / Fullscreen Presentation Mode */
+body.tv-mode {
+  font-size: 1.15rem;
+  background: #ffffff;
+}
+
+body.tv-mode .tv-hide {
+  display: none !important;
+}
+
+body.tv-mode .tv-enlarge {
+  font-size: 1.4rem;
+}
+
+/* Auto-scroll container for TV projector */
+.tv-autoscroll {
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+/* PRINT MEDIA STYLES - Official Perbakin Classification Bulletin */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 1.2cm;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 10pt;
+  }
+
+  /* Hide interactive controls in print */
+  header, 
+  #refreshProgressBar, 
+  #classTabsContainer, 
+  section:nth-of-type(2), /* dynamic tabs */
+  section:nth-of-type(3), /* filter toolbar */
+  footer, 
+  #settingsModal, 
+  #athleteDetailModal,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Show official print header */
+  #officialPrintHeader {
+    display: block !important;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #000000;
+    padding-bottom: 10px;
+  }
+
+  /* Show official print signatures */
+  #officialPrintFooter {
+    display: block !important;
+    margin-top: 40px;
+    page-break-inside: avoid;
+  }
+
+  .outdoor-card {
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  th, td {
+    border: 1px solid #94a3b8 !important;
+    padding: 6px 8px !important;
+    font-size: 9.5pt !important;
+  }
+
+  th {
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
