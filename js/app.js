@@ -459,7 +459,7 @@ function renderTabs() {
 }
 
 // ==============================================================================
-// 8. DATA FETCHING (JSONP + Fetch Fallback)
+// 8. DATA FETCHING (Multi-Strategy: GViz JSON, GViz CSV, JSONP & Fallback)
 // ==============================================================================
 async function loadCurrentSheetData(isSoftRefresh = false) {
   if (state.isFetching) return;
@@ -474,36 +474,31 @@ async function loadCurrentSheetData(isSoftRefresh = false) {
   DOM.refreshIcon.classList.add('animate-spin');
 
   try {
-    // Coba ambil langsung dari Google Sheets
+    // Ambil data langsung dari Google Sheets dengan multi-strategi
     const rawAthletes = await fetchFromGoogleSheetsRobust(state.spreadsheetId, state.currentSheet);
     
-    state.dataCache[state.currentSheet] = rawAthletes;
-    state.isOfflineMode = false;
-    state.lastUpdated = new Date();
-    
-    DOM.loadingState.classList.add('hidden');
-    DOM.errorState.classList.add('hidden');
-    processAndRenderLeaderboard();
-    updateConnectionStatus(true);
+    if (Array.isArray(rawAthletes) && rawAthletes.length > 0) {
+      state.dataCache[state.currentSheet] = rawAthletes;
+      state.isOfflineMode = false;
+      state.lastUpdated = new Date();
+      updateConnectionStatus(true);
+    } else {
+      throw new Error('Data sheet kosong atau format kolom belum sesuai.');
+    }
 
   } catch (error) {
-    console.error('Fetch error:', error);
+    console.warn('Fetch error:', error.message);
     
     // Jika ada cache sebelumnya, gunakan
     if (state.dataCache[state.currentSheet] && state.dataCache[state.currentSheet].length > 0) {
-      processAndRenderLeaderboard();
       updateConnectionStatus(false, 'Mode Cache Aktif');
     } else if (MOCK_DATA[state.currentSheet]) {
       // Gunakan fallback template asli (hanya 3 baris asli dari spreadsheet)
       state.dataCache[state.currentSheet] = MOCK_DATA[state.currentSheet];
       state.isOfflineMode = true;
       state.lastUpdated = new Date();
-      DOM.loadingState.classList.add('hidden');
-      DOM.errorState.classList.add('hidden');
-      processAndRenderLeaderboard();
-      updateConnectionStatus(false, 'Mode Offline (Template Asli)');
+      updateConnectionStatus(false, 'Mode Cadangan Lokal');
     } else {
-      DOM.loadingState.classList.add('hidden');
       DOM.errorState.classList.remove('hidden');
       DOM.errorMessage.textContent = `Tidak dapat terhubung ke Google Sheets: ${error.message || 'Koneksi gagal'}. Pastikan setelan berbagi diatur ke "Anyone with the link can view".`;
       updateConnectionStatus(false, 'Koneksi Terputus');
@@ -511,40 +506,85 @@ async function loadCurrentSheetData(isSoftRefresh = false) {
   } finally {
     state.isFetching = false;
     DOM.refreshIcon.classList.remove('animate-spin');
+    // JAMINAN MUTLAK: Loading spinner selalu ditutup dalam kondisi apapun
+    DOM.loadingState.classList.add('hidden');
+    try {
+      processAndRenderLeaderboard();
+    } catch (renderError) {
+      console.error('Render error:', renderError);
+    }
   }
 }
 
 /**
- * Pengambilan data gviz dengan dukungan JSONP
- * Menjamin koneksi berhasil 100% tanpa hambatan CORS (termasuk bila dibuka via file://)
+ * Pengambilan data gviz dengan multi-strategi:
+ * 1. GViz JSON via fetch (dengan timeout 5 detik)
+ * 2. GViz CSV via fetch (format murni teks CSV, bebas wrapper)
+ * 3. JSONP script injection (bypasses browser CORS secara total)
  */
 async function fetchFromGoogleSheetsRobust(sheetId, sheetName) {
-  // Metode 1: Coba via Fetch standar
+  // Metode 1: Fetch GViz JSON (Primary)
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
     const gvizUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}&t=${Date.now()}`;
     const response = await fetch(gvizUrl, {
       method: 'GET',
       headers: { 'Accept': 'application/json, text/plain, */*' },
-      cache: 'no-store'
+      cache: 'no-store',
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
 
     if (response.ok) {
       const text = await response.text();
-      const match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);?\s*$/);
-      if (match && match[1]) {
-        const json = JSON.parse(match[1]);
-        if (json.status === 'ok') {
-          return parseGvizTable(json.table);
+      const startIdx = text.indexOf('{');
+      const endIdx = text.lastIndexOf('}');
+      if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+        const json = JSON.parse(text.substring(startIdx, endIdx + 1));
+        if (json && json.status === 'ok' && json.table) {
+          const list = parseGvizTable(json.table);
+          if (Array.isArray(list) && list.length > 0) return list;
         }
       }
     }
   } catch (fetchErr) {
-    console.warn('Fetch standar dicegah browser (CORS/file://), beralih ke JSONP...', fetchErr);
+    console.warn('Metode 1 (Fetch GViz JSON) dilewati:', fetchErr.message);
   }
 
-  // Metode 2: JSONP Callback (Bypass CORS sepenuhnya)
-  const jsonpData = await fetchGoogleSheetsJsonp(sheetId, sheetName);
-  return parseGvizTable(jsonpData.table);
+  // Metode 2: Fetch GViz CSV (Secondary - super cepat & reliabel)
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+    const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}&t=${Date.now()}`;
+    const response = await fetch(csvUrl, {
+      method: 'GET',
+      cache: 'no-store',
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    if (response.ok) {
+      const csvText = await response.text();
+      const list = parseCsvTable(csvText);
+      if (Array.isArray(list) && list.length > 0) return list;
+    }
+  } catch (csvErr) {
+    console.warn('Metode 2 (Fetch CSV) dilewati:', csvErr.message);
+  }
+
+  // Metode 3: JSONP Callback (Bypass CORS sepenuhnya)
+  try {
+    const jsonpData = await fetchGoogleSheetsJsonp(sheetId, sheetName);
+    if (jsonpData && jsonpData.table) {
+      const list = parseGvizTable(jsonpData.table);
+      if (Array.isArray(list) && list.length > 0) return list;
+    }
+  } catch (jsonpErr) {
+    console.warn('Metode 3 (JSONP) dilewati:', jsonpErr.message);
+  }
+
+  throw new Error('Gagal memuat data dari semua jalur koneksi Google Sheets.');
 }
 
 function fetchGoogleSheetsJsonp(sheetId, sheetName) {
@@ -555,7 +595,7 @@ function fetchGoogleSheetsJsonp(sheetId, sheetName) {
     const timeoutTimer = setTimeout(() => {
       cleanup();
       reject(new Error('Koneksi Google Sheets timeout via JSONP.'));
-    }, 12000);
+    }, 8000);
 
     function cleanup() {
       clearTimeout(timeoutTimer);
@@ -580,6 +620,75 @@ function fetchGoogleSheetsJsonp(sheetId, sheetName) {
 
     document.body.appendChild(script);
   });
+}
+
+function parseCsvTable(csvText) {
+  if (!csvText) return [];
+  const lines = csvText.trim().split(/\r?\n/).filter(line => line.trim().length > 0);
+  if (lines.length <= 1) return [];
+
+  const parseLine = (text) => {
+    const result = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (c === '"') {
+        if (inQuotes && text[i + 1] === '"') {
+          cur += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (c === ',' && !inQuotes) {
+        result.push(cur.trim());
+        cur = '';
+      } else {
+        cur += c;
+      }
+    }
+    result.push(cur.trim());
+    return result;
+  };
+
+  const headers = parseLine(lines[0]);
+  const colIndexMap = detectColumnMapping(headers.map(h => ({ label: h })));
+  const athletes = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const row = parseLine(lines[i]);
+    const getVal = (colKey) => {
+      const idx = colIndexMap[colKey];
+      return (idx !== undefined && idx < row.length) ? row[idx] : '';
+    };
+
+    const getNum = (colKey) => {
+      const raw = getVal(colKey);
+      if (!raw) return 0;
+      const cleaned = String(raw).replace(/[^0-9.]/g, '');
+      const parsed = parseFloat(cleaned);
+      return isNaN(parsed) ? 0 : parsed;
+    };
+
+    const nama = String(getVal('nama')).trim();
+    if (!nama) continue;
+
+    let skorTotal = getNum('skor');
+    let totalX = getNum('x');
+
+    athletes.push({
+      id: String(getVal('id')).trim() || `PBK-${athletes.length + 1}`,
+      waktuInput: String(getVal('waktu')).trim() || '-',
+      kategori: normalizeKategori(String(getVal('kategori'))),
+      gender: normalizeGender(String(getVal('gender'))),
+      nama: nama,
+      kontingen: String(getVal('kontingen')).trim() || '-',
+      skorTotal: skorTotal,
+      totalX: totalX
+    });
+  }
+
+  return athletes;
 }
 
 function parseGvizTable(table) {

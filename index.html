@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-  <title>Live Scoring Perbakin - Kejuaraan Menembak Real-Time</title>
-  <meta name="description" content="Web Dashboard Live Scoring Perbakin resmi untuk kejuaraan menembak kelas Air Pistol dan Air Rifle secara real-time.">
+  <title>Live Scoring - PORPROV Ke-XIV PERBAKIN Kalimantan Barat</title>
+  <meta name="description" content="Dashboard Resmi Live Scoring PORPROV Ke-XIV PERBAKIN Kalimantan Barat untuk nomor tanding Air Pistol dan Air Rifle secara real-time.">
   <meta name="theme-color" content="#0B1F3A">
   <link rel="icon" type="image/svg+xml" href="assets/perbakin-logo.svg">
 
@@ -35,7 +35,7 @@
 
   <!-- Phosphor Icons for clean vector UI icons -->
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/styles.css?v=4.0.0">
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-900 flex flex-col antialiased selection:bg-amber-400 selection:text-slate-900">
 
@@ -50,14 +50,14 @@
       <div class="flex items-center gap-4">
         <img src="assets/perbakin-logo.svg" alt="Perbakin" class="w-16 h-16 object-contain">
         <div>
-          <h2 class="text-base font-black tracking-wide uppercase">PENGURUS BESAR PERSATUAN MENEMBAK INDONESIA (PB. PERBAKIN)</h2>
-          <h1 class="text-xl font-extrabold uppercase mt-0.5">LEMBAR HASIL PERTANDINGAN RESMI (RESULTS BULLETIN)</h1>
-          <p class="text-xs text-slate-600 mt-0.5">Nomor Tanding: <span id="printClassTitle" class="font-bold">Air Pistol ISSF 10M - Divisi Putra</span> | Status: HASIL RESMI (VERIFIED)</p>
+          <h2 class="text-xs font-bold tracking-wider uppercase text-slate-700">PENGURUS PROVINSI PERBAKIN KALIMANTAN BARAT</h2>
+          <h1 class="text-xl font-black uppercase text-slate-950 mt-0.5">PORPROV KE-XIV PERBAKIN KALIMANTAN BARAT</h1>
+          <p class="text-xs text-slate-600 mt-0.5">Lembar Hasil Pertandingan Resmi &bull; Nomor: <span id="printClassTitle" class="font-bold">Air Pistol ISSF 10M</span></p>
         </div>
       </div>
       <div class="text-right text-xs font-mono text-slate-700">
         <div>Dicetak: <span id="printTimestamp">-</span></div>
-        <div class="text-[10px] text-slate-500">Sistem Live Scoring Perbakin</div>
+        <div class="text-[10px] text-slate-500">Live Scoring System</div>
       </div>
     </div>
   </div>
@@ -67,26 +67,26 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-between py-3 sm:py-4">
         
-        <!-- Logo and Title -->
+        <!-- Logo and Championship Title -->
         <div class="flex items-center gap-3 sm:gap-4">
           <div class="w-11 h-11 sm:w-14 sm:h-14 flex-shrink-0 bg-white rounded-lg p-1 border border-slate-200 shadow-sm flex items-center justify-center">
             <img src="assets/perbakin-logo.svg" alt="Logo Perbakin" class="w-full h-full object-contain">
           </div>
           <div>
             <div class="flex items-center gap-2">
-              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                PERBAKIN
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300">
+                PORPROV XIV KALBAR
               </span>
               <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
                 <span class="w-2 h-2 rounded-full bg-emerald-500 live-dot relative inline-block"></span>
                 <span>LIVE SCORING</span>
               </span>
             </div>
-            <h1 class="text-lg sm:text-2xl font-extrabold tracking-tight text-perbakin-navy leading-tight mt-0.5">
-              Papan Skor Kejuaraan Menembak
+            <h1 class="text-base sm:text-2xl font-black tracking-tight text-perbakin-navy leading-tight mt-0.5">
+              PORPROV Ke-XIV PERBAKIN Kalimantan Barat
             </h1>
             <p class="text-xs sm:text-sm text-slate-600 hidden sm:block">
-              Klasemen resmi real-time disinkronkan langsung dari meja juri
+              Papan Klasemen Resmi Real-Time Kejuaraan Menembak (Air Pistol & Air Rifle)
             </p>
           </div>
         </div>
@@ -544,7 +544,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center sm:text-left flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
       <div class="flex items-center gap-2">
         <img src="assets/perbakin-logo.svg" alt="Perbakin" class="h-6 w-auto">
-        <span>&copy; <span id="currentYear">2026</span> Persatuan Menembak Indonesia (PERBAKIN). Web Dashboard Live Scoring.</span>
+        <span>&copy; <span id="currentYear">2026</span> PORPROV Ke-XIV PERBAKIN Kalimantan Barat. Web Dashboard Live Scoring.</span>
       </div>
       <div class="flex items-center gap-3">
         <a id="linkGoogleSheet" href="#" target="_blank" rel="noopener noreferrer" class="hover:text-perbakin-blue font-semibold flex items-center gap-1">
@@ -679,7 +679,7 @@
     </div>
   </div>
 
-  <!-- APPLICATION JAVASCRIPT -->
-  <script src="js/app.js"></script>
+  <!-- APPLICATION JAVASCRIPT WITH CACHE-BUSTER -->
+  <script src="js/app.js?v=4.0.0"></script>
 </body>
 </html>
