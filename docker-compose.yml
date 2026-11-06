@@ -4,11 +4,12 @@ services:
     container_name: scoring-perbakin
     restart: unless-stopped
     ports:
-      - "8095:80"
+      - "127.0.0.1:8098:80"
+    volumes:
+      - .:/usr/share/nginx/html:ro
     networks:
-      - npm-network
+      - apps-network
 
 networks:
-  npm-network:
-    name: nginx-proxy-manager_default
+  apps-network:
     external: true
