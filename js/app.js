@@ -157,6 +157,23 @@ const DOM = {
   cfgIntervalDisplay: document.getElementById('cfgIntervalDisplay'),
   cfgApiKey: document.getElementById('cfgApiKey'),
   
+  // Print & Athlete Detail Modal
+  btnPrintResults: document.getElementById('btnPrintResults'),
+  printClassTitle: document.getElementById('printClassTitle'),
+  printTimestamp: document.getElementById('printTimestamp'),
+  athleteDetailModal: document.getElementById('athleteDetailModal'),
+  modalAthleteName: document.getElementById('modalAthleteName'),
+  modalAthleteMeta: document.getElementById('modalAthleteMeta'),
+  modalAthleteScore: document.getElementById('modalAthleteScore'),
+  modalAthleteX: document.getElementById('modalAthleteX'),
+  modalAthleteId: document.getElementById('modalAthleteId'),
+  modalAthleteTeam: document.getElementById('modalAthleteTeam'),
+  modalAthleteCatGen: document.getElementById('modalAthleteCatGen'),
+  modalAthleteTime: document.getElementById('modalAthleteTime'),
+  modalAthleteAvg: document.getElementById('modalAthleteAvg'),
+  btnCloseAthleteModal: document.getElementById('btnCloseAthleteModal'),
+  btnDismissAthleteModal: document.getElementById('btnDismissAthleteModal'),
+  
   // Footer
   linkGoogleSheet: document.getElementById('linkGoogleSheet'),
   footerSpreadsheetId: document.getElementById('footerSpreadsheetId'),
@@ -279,6 +296,31 @@ function setupEventListeners() {
 
   // TV / Presentation mode
   DOM.btnToggleTv.addEventListener('click', toggleTvMode);
+
+  // Print Results Bulletin
+  if (DOM.btnPrintResults) {
+    DOM.btnPrintResults.addEventListener('click', () => {
+      const now = new Date();
+      if (DOM.printClassTitle) DOM.printClassTitle.textContent = `${state.currentSheet} ISSF 10M`;
+      if (DOM.printTimestamp) {
+        DOM.printTimestamp.textContent = `${now.toLocaleDateString('id-ID', { dateStyle: 'full' })}, ${now.toLocaleTimeString('id-ID')} WIB`;
+      }
+      window.print();
+    });
+  }
+
+  // Athlete detail modal close
+  if (DOM.btnCloseAthleteModal) {
+    DOM.btnCloseAthleteModal.addEventListener('click', closeAthleteModal);
+  }
+  if (DOM.btnDismissAthleteModal) {
+    DOM.btnDismissAthleteModal.addEventListener('click', closeAthleteModal);
+  }
+  if (DOM.athleteDetailModal) {
+    DOM.athleteDetailModal.addEventListener('click', (e) => {
+      if (e.target === DOM.athleteDetailModal) closeAthleteModal();
+    });
+  }
 
   // Settings modal events
   DOM.btnOpenSettings.addEventListener('click', openSettingsModal);

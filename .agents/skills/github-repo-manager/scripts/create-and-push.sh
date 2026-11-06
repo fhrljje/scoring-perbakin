@@ -56,3 +56,4 @@ fi
 
 echo "==> Success! Repository published to GitHub:"
 gh repo view
+
